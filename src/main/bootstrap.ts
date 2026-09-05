@@ -46,4 +46,7 @@ export const resetBootstrapForTesting = (): void => {
 };
 
 app.setStartHook(ensureNativeStarted);
-app.on('will-quit', () => nativeApp().quit());
+// `quit` fires only after `before-quit` and `will-quit` had their chance to veto,
+// so a vetoed quit leaves the run loop pumping (stopping it on `will-quit` killed
+// every later native callback in an app that cancelled its own quit).
+app.on('quit', () => nativeApp().quit());

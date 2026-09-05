@@ -3,9 +3,11 @@ import { currentPlatform } from '../../../src/common/platform';
 import { BrowserWindow } from '../../../src/main/api/browser-window';
 import { resetBootstrapForTesting } from '../../../src/main/bootstrap';
 import { nativeApp, setNativeAppForTesting } from '../../../src/main/native-app';
-import { installSafeAppExit } from '../../helpers/safe-app-exit';
+import { installSafeAppExit, keepAppAlive } from '../../helpers/safe-app-exit';
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+let stopKeepAlive = (): void => undefined;
 
 if (currentPlatform() === 'macos') {
   describe('BrowserWindow on the real macOS backend', () => {
@@ -13,12 +15,14 @@ if (currentPlatform() === 'macos') {
       // Ensure the real native backend is used (other suites may have injected a fake).
       setNativeAppForTesting(undefined);
       resetBootstrapForTesting();
-      // Closing the last window triggers the window-all-closed default quit;
-      // keep it from terminating the shared test process.
+      // A real app keeps running after its last window closes; without the
+      // listener the default quit would stop the run loop under later tests.
       installSafeAppExit();
+      stopKeepAlive = keepAppAlive();
     });
 
     afterAll(() => {
+      stopKeepAlive();
       nativeApp().quit();
     });
 

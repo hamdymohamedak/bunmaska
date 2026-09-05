@@ -12,6 +12,7 @@ A documentation-versus-reality pass: every claim in the docs was checked against
 
 **Fixes**
 
+- A `will-quit` (or `before-quit`) veto keeps the app alive for real: the native run loop used to be stopped on `will-quit` before the veto was honoured, so an app that cancelled its own quit stopped receiving native callbacks. The run loop now stops on `quit`, which only fires once no listener vetoed.
 - `bunmaska init my-app .` works - `init` takes `[name] [dir]`, so a named project can scaffold into the current directory.
 - A dev restart no longer steals focus from your editor: the respawned app comes up behind whatever is frontmost (macOS, Linux, Windows).
 - `bunmaska build` honours `name`, `id` and `icon` from `bunmaska.config.ts` (flag > config > entry file name). It used to read only the flags.

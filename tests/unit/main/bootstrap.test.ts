@@ -111,3 +111,45 @@ describe('bootstrap native wiring', () => {
     expect(seen).toBe('/Users/ada/doc.txt');
   });
 });
+
+describe('bootstrap quit wiring', () => {
+  afterEach(() => {
+    setNativeAppForTesting(undefined);
+    app.resetForTesting();
+    resetBootstrapForTesting();
+  });
+
+  const withCountingNative = (): { quits: () => number } => {
+    let quits = 0;
+    const { native } = makeNative();
+    setNativeAppForTesting({
+      ...native,
+      quit: () => {
+        quits += 1;
+      },
+    });
+    installSafeAppExit();
+    ensureNativeStarted();
+    return { quits: () => quits };
+  };
+
+  test('a will-quit veto leaves the native run loop running', () => {
+    const counting = withCountingNative();
+    const veto = (event: { preventDefault(): void }): void => {
+      event.preventDefault();
+    };
+    app.on('will-quit', veto);
+    try {
+      app.quit();
+      expect(counting.quits()).toBe(0);
+    } finally {
+      app.removeListener('will-quit', veto);
+    }
+  });
+
+  test('a completed quit stops the native run loop once', () => {
+    const counting = withCountingNative();
+    app.quit();
+    expect(counting.quits()).toBe(1);
+  });
+});

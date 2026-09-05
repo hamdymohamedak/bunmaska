@@ -38,3 +38,16 @@ export const installSafeAppExit = (): void => {
     }),
   );
 };
+
+/**
+ * Behave like a real macOS app: a `window-all-closed` listener suppresses the
+ * default quit, so closing the last window does not stop the native run loop.
+ * Returns the disposer; call it in `afterAll`.
+ */
+export const keepAppAlive = (): (() => void) => {
+  const listener = (): void => undefined;
+  app.on('window-all-closed', listener);
+  return () => {
+    app.removeListener('window-all-closed', listener);
+  };
+};

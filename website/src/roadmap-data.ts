@@ -63,10 +63,10 @@ export const milestones: readonly Milestone[] = [
   {
     version: 'alpha.8',
     status: 'now',
-    title: 'Hosted engines, a React starter, the last API stretch',
-    note: 'what we are building now. Nothing here is done yet; the first bullet says why.',
+    title: 'The engine catalogue, a React starter, the last API stretch',
+    note: 'what we are building now. The feed itself has been live since alpha.6; what it serves is the work.',
     items: [
-      'The engine catalogue, honestly: three attempts to build the stable-train WinCairo engine in CI were cancelled at the six-hour runner cap. The pipeline works end to end; it needs a bigger build box or a compile cache. Until then the feed serves the one engine it has.',
+      'The catalogue, honestly. The feed serves exactly one engine today, a development-train WinCairo build we grandfathered in; our own rule is to host only stable-train releases. Three attempts to build that stable engine in CI were cancelled at the six-hour runner cap. Pack, sign and publish all work; the build needs a bigger box or a compile cache.',
       'A `bunmaska init --react` starter on top of the alpha.7 renderer build: an IIFE bundle (`file://` blocks ES modules), live reload, and the renderer shipped beside the executable. The recipe is proven in a real app; the template is the work.',
       'The hosted Linux engine: the relocatable build loads from the store today. Next it has to draw, then get a cross-distro base and a publish step of its own.',
       'Engine delivery you never type: embedded in the bundle, or fetched on first run.',
@@ -83,7 +83,7 @@ export const milestones: readonly Milestone[] = [
     items: [
       'The API surface is frozen for the beta line and semver discipline begins.',
       'install > init > dev > build > launch runs end to end in CI on macOS, Linux and Windows, not just unit-green.',
-      'Hosted engines are live and the auto-updater has shipped a real update to a real app.',
+      'Stable-train engines are hosted for Windows and Linux, and the auto-updater has shipped a real update to a real app.',
       'At least five real open-source Electron apps run via dependency swap, and one app we use daily has run for two weeks without a crash.',
       'Docs are complete: every implemented method documented, the parity matrix exact, the migration guide tested against a real app.',
       'Coverage at threshold, zero silent skips, and published size and memory numbers with the methodology attached.',

@@ -9,6 +9,7 @@ import {
 } from '../../../renderer/api/cross-world-bridge';
 import { generatePreloadBootstrap } from '../../../renderer/preload-bootstrap';
 import { protocol } from '../../api/protocol';
+import { isDevRestart } from '../../dev-reload';
 import { buildExecWrapper, EXEC_TIMEOUT_MS } from '../../ipc/exec-wrapper';
 import { AdaptiveBlockingPump } from '../../run-loop';
 import { DOM_READY_HANDLER_NAME, generateDomReadyScript } from '../dom-ready';
@@ -691,10 +692,18 @@ class MacOSWindow implements NativeWindow {
 
   show(): void {
     const rt = cocoa();
-    msgSendPtr(this.#window, rt.selectors.get('makeKeyAndOrderFront:'), 0n);
-    // Activate the app so the shown window comes to the foreground.
-    const app = rt.msgSend(rt.classes.get('NSApplication'), rt.selectors.get('sharedApplication'));
-    msgSendU8(app, rt.selectors.get('activateIgnoringOtherApps:'), 1);
+    if (isDevRestart()) {
+      // A dev respawn orders the window in behind the editor instead of on top.
+      msgSendPtr(this.#window, rt.selectors.get('orderFront:'), 0n);
+    } else {
+      msgSendPtr(this.#window, rt.selectors.get('makeKeyAndOrderFront:'), 0n);
+      // Activate the app so the shown window comes to the foreground.
+      const app = rt.msgSend(
+        rt.classes.get('NSApplication'),
+        rt.selectors.get('sharedApplication'),
+      );
+      msgSendU8(app, rt.selectors.get('activateIgnoringOtherApps:'), 1);
+    }
     // AppKit has no `windowDidShow:` notification, so `show` is emitted here. A
     // becomeKey notification also fires `focus` via the delegate.
     this.emitEvent('show');
@@ -850,7 +859,9 @@ class MacOSApplication implements NativeApplication {
     msgSendPtr(this.#app, rt.selectors.get('setDelegate:'), this.#appDelegate);
     msgSendI64(this.#app, rt.selectors.get('setActivationPolicy:'), NS_ACTIVATION_POLICY_REGULAR);
     rt.msgSend(this.#app, rt.selectors.get('finishLaunching'));
-    msgSendU8(this.#app, rt.selectors.get('activateIgnoringOtherApps:'), 1);
+    if (!isDevRestart()) {
+      msgSendU8(this.#app, rt.selectors.get('activateIgnoringOtherApps:'), 1);
+    }
 
     // `nextEventMatchingMask:` runs every pump tick; cache its arguments. The
     // mode string is autoreleased, so retain it for the app's lifetime.

@@ -389,6 +389,38 @@ describe('DevSupervisor child lifecycle', () => {
   });
 });
 
+describe('DevSupervisor restart marking', () => {
+  test('the first spawn is not a restart; every respawn is', async () => {
+    // The respawned app reads this to show its window without stealing focus.
+    const spawns: Array<{ restart: boolean }> = [];
+    let timerFn: (() => void) | undefined;
+    let onChange: ((p: string) => void) | undefined;
+    const deps: DevDeps = {
+      spawn: (_entry, opts) => {
+        spawns.push({ restart: opts?.restart === true });
+        return { kill: () => undefined, reload: () => undefined, exited: Promise.resolve() };
+      },
+      watch: (_dir, cb) => {
+        onChange = cb;
+        return { close: () => undefined };
+      },
+      timers: {
+        set: (fn) => {
+          timerFn = fn;
+          return 1;
+        },
+        clear: () => undefined,
+      },
+      log: () => undefined,
+    };
+    new DevSupervisor('/proj', 'src/main.ts', deps);
+    onChange?.('src/main.ts');
+    timerFn?.();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(spawns).toEqual([{ restart: false }, { restart: true }]);
+  });
+});
+
 describe('makeContentFilter', () => {
   test('drops a save that did not change the bytes', () => {
     const filter = makeContentFilter(() => 'same');

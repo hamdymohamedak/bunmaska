@@ -1,4 +1,5 @@
 import { type Pointer, ptr } from 'bun:ffi';
+import { isDevRestart } from '../../dev-reload';
 import { UnsupportedPlatformError } from '../../../common/errors';
 import {
   generateChannelId,
@@ -570,7 +571,10 @@ class LinuxWindow implements NativeWindow {
   show(): void {
     const gtk = loadGtkFFI();
     gtk.symbols.gtk_widget_set_visible(this.#window, GTK_TRUE);
-    gtk.symbols.gtk_window_present(this.#window);
+    // `present` requests focus; a dev respawn leaves the editor focused.
+    if (!isDevRestart()) {
+      gtk.symbols.gtk_window_present(this.#window);
+    }
     this.#visible = true;
     this.#minimized = false;
     this.#emitEvent('show');

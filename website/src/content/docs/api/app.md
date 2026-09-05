@@ -388,7 +388,7 @@ Returns:
 
 * `event` Event
 
-Emitted after `before-quit` is not vetoed, immediately before the app quits. Calling `event.preventDefault()` aborts the quit. The native bootstrap also listens for this to stop the run loop before the process exits.
+Emitted after `before-quit` is not vetoed, immediately before the app quits. Calling `event.preventDefault()` aborts the quit and the app keeps running, run loop included.
 
 ```ts
 import { app } from 'bunmaska'
@@ -404,7 +404,7 @@ Returns:
 
 * `event` Event - the exit code (Integer).
 
-Emitted when the application is quitting, just before the process exits. Unlike most events, the listener receives the numeric exit code as its argument.
+Emitted when the application is quitting, just before the process exits. Unlike most events, the listener receives the numeric exit code as its argument. The native bootstrap listens for this event to stop the run loop before the process exits; a vetoed quit never reaches it.
 
 ```ts
 import { app } from 'bunmaska'

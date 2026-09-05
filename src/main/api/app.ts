@@ -311,8 +311,8 @@ export class App extends EventEmitter {
    * Begin shutting the app down. Emits the cancelable `before-quit` then
    * `will-quit` events (a listener may call `preventDefault()` on the passed
    * event to abort the quit); if neither vetoes, emits `quit` with the exit code
-   * and exits the process. The native bootstrap listens for `will-quit` to stop
-   * the run loop before the process exits.
+   * and exits the process. The native bootstrap listens for `quit` to stop the
+   * run loop before the process exits.
    */
   quit(exitCode = 0): void {
     if (this.#quitting) {

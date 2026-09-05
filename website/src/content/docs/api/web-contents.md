@@ -83,7 +83,7 @@ win.webContents.reload();
 
 ### `contents.reloadIgnoringCache()`
 
-Reloads the current page, bypassing the cache. Wired on both backends.
+Reloads the current page, bypassing the cache. Wired on all three platforms.
 
 ```ts
 win.webContents.reloadIgnoringCache();
@@ -141,7 +141,7 @@ console.log(title, ua);
 
 * `css` string
 
-Returns `Promise<string>` - injects a `<style>` block into the page and resolves to a key you can later pass to [`removeInsertedCSS`](#contentsremoveinsertedcsskey). Implemented purely through the page-world exec channel (no native CSS call), so it behaves the same on both backends. Note: there is no `options` argument.
+Returns `Promise<string>` - injects a `<style>` block into the page and resolves to a key you can later pass to [`removeInsertedCSS`](#contentsremoveinsertedcsskey). Implemented purely through the page-world exec channel (no native CSS call), so it behaves the same on all three platforms. Note: there is no `options` argument.
 
 ```ts
 const key = await win.webContents.insertCSS('body { background: #111; color: #eee; }');
@@ -257,7 +257,7 @@ Honest follow-up limits: there are no keyboard modifiers yet, synthesized drags 
 
 * `handler` Function - receives `{ url }` and returns `{ action: 'allow' | 'deny' }`.
 
-Sets the handler consulted when the page requests a new window (`window.open` / `target=_blank`). Honest caveat: the native popup is **always blocked** on every platform - child-window creation isn't supported, so `{ action: 'allow' }` is unimplemented everywhere. Returning `{ action: 'allow' }` logs a warning and still blocks the window, so the practical pattern is to open the URL externally and return `deny`. The handler's return shape is `{ action }` only - no `overrideBrowserWindowOptions`, and there is no `did-create-window` event.
+Sets the handler consulted when the page requests a new window (`window.open` / `target=_blank`). Honest caveat: the native popup is **always blocked** on every platform - child-window creation isn't supported, so `{ action: 'allow' }` is unimplemented everywhere. Returning `{ action: 'allow' }` logs a warning and still blocks the window, so the practical pattern is to open the URL externally and return `deny`. The handler's return shape is `{ action }` only - no `overrideBrowserWindowOptions`, and there is no `did-create-window` event. On Windows the handler is not invoked yet: `window.open` is blocked silently there (engine work pending).
 
 ```ts
 import { shell } from 'bunmaska';
@@ -307,7 +307,7 @@ if (!win.webContents.isDestroyed()) {
 * `channel` string
 * `...args` any[]
 
-Sends an event on `channel` to the renderer, where `ipcRenderer.on(channel, ...)` receives it. Arguments are structured-clone serialized through the IPC envelope. A `send` before the page's first load finishes is queued and delivered once it does (macOS and Linux), so a message fired right after `loadFile` is not lost.
+Sends an event on `channel` to the renderer, where `ipcRenderer.on(channel, ...)` receives it. Arguments are structured-clone serialized through the IPC envelope. A `send` before the page's first load finishes is queued on all platforms and flushed once it does - at `dom-ready` on Windows, at `did-finish-load` on macOS and Linux - so a message fired right after `loadFile` is not lost.
 
 ```ts
 win.webContents.send('update-available', { version: '1.2.0' });
@@ -324,7 +324,7 @@ ipcRenderer.on('update-available', (_event, info) => {
 
 ## Events
 
-`webContents` extends `EventEmitter`. Bunmaska emits a deliberately small, navigation-focused subset, driven by the native navigation delegate (macOS) / WebKitGTK load signals (Linux).
+`webContents` extends `EventEmitter`. Bunmaska emits a deliberately small, navigation-focused subset, driven by the native load callbacks on all three platforms - the navigation delegate on macOS, WebKitGTK load signals on Linux, the WebKit2 C API loader client on Windows.
 
 ### Event: 'did-start-loading'
 
@@ -415,6 +415,6 @@ Electron's `webContents` is huge; Bunmaska implements the navigation + scripting
 - **Printing & content** - `print()` (only `printToPDF`, macOS-only; engine-blocked on Windows), `savePage`, `getPrintersAsync`, `findInPage` / `stopFindInPage`.
 - **Editing & clipboard commands** - `undo`/`redo`/`cut`/`copy`/`paste`/`selectAll`/`replace`, `cut`-style menu wiring, `replaceMisspelling`.
 - **Media / audio** - `isAudioMuted` / `setAudioMuted`, `setBackgroundThrottling`, `getOSProcessId`, `getProcessId`.
-- **`setWindowOpenHandler` with `allow`** - child-window creation is unsupported, so `{ action: 'allow' }` is logged and ignored; there is no `did-create-window`, and the handler return type omits `overrideBrowserWindowOptions`.
+- **`setWindowOpenHandler` with `allow`** - child-window creation is unsupported, so `{ action: 'allow' }` is logged and ignored; there is no `did-create-window`, and the handler return type omits `overrideBrowserWindowOptions`. On Windows the handler is not invoked at all yet.
 - **`capturePage` on Windows / `printToPDF` off macOS** - `capturePage` works on macOS and Linux but is **engine-blocked on Windows**; `printToPDF` is _macOS only_ (not yet wired on Linux, engine-blocked on Windows - the WinCairo WebKit2 C API exposes neither a PDF sink nor a UI-process snapshot).
 - **Session / zoom plumbing** - no `session` property, no `setVisualZoomLevelLimits`, no `zoomLevel` persistence across reloads (zoom is stored in-memory and reapplied per `setZoomFactor`).

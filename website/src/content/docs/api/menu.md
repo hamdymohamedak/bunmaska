@@ -6,7 +6,7 @@ order: 7
 
 Process: Main
 
-The `Menu` module lets you build application menu bars and context (popup) menus. The menu tree is held as plain JS objects and realized into native widgets on demand - a native `NSMenu` on macOS, GTK menus on Linux, and Win32 `HMENU` on Windows. Both context menus and the application menu bar work on all three; role items render as plain labels on Linux/Windows (their native keyboard shortcuts still fire), and accelerator text in labels is a follow-up there.
+The `Menu` module lets you build application menu bars and context (popup) menus. The menu tree is held as plain JS objects and realized into native widgets on demand - a native `NSMenu` on macOS, GTK menus on Linux, and Win32 `HMENU` on Windows. Both context menus and the application menu bar work on all three. Role items route to the responder chain on macOS; Linux wires the editing and window roles; on Windows role items are inert labels today (no accelerator table). Accelerator text in labels is a follow-up off macOS.
 
 Bunmaska exposes both `Menu` and a companion `MenuItem` class. You typically build menus declaratively with `Menu.buildFromTemplate(...)`, but you can also construct items by hand and `append`/`insert` them.
 
@@ -44,7 +44,7 @@ Menu.setApplicationMenu(menu);
 
 `static setApplicationMenu(menu: Menu | null): void`
 
-Sets `menu` as the application menu. On macOS this becomes the system menu bar; on Linux it is installed via the GTK realizer. Passing `null` clears it - both the stored reference (`getApplicationMenu()` returns `null`) and the native side: the menu bar is removed on Windows/Linux (Electron semantics), and the main menu is emptied on macOS.
+Sets `menu` as the application menu. On macOS this becomes the system menu bar; on Linux it is installed via the GTK realizer; on Windows it is a Win32 menu bar. Passing `null` removes the bar on all three platforms - the stored reference (`getApplicationMenu()` returns `null`) and the native side, including bars already installed on Linux.
 
 ```ts
 import { Menu } from 'bunmaska';
@@ -119,13 +119,13 @@ console.log(item?.checked);
 
 `popup(options?: MenuPopupOptions): void`
 
-Shows the menu as a context/popup menu, anchored to a window. The target window is the `window` option if given, else the focused window, else the most-recently-created window; if none can be resolved it throws.
+`MenuPopupOptions` is exported from `bunmaska`. Shows the menu as a context/popup menu, anchored to a window. The target window is the `window` option if given, else the focused window, else the most-recently-created window; if none can be resolved it throws.
 
 Differences from Electron worth knowing:
 
 - `x` / `y` are content-relative and default to the top-left `(0, 0)` - **not** the current mouse cursor position.
 - The only supported options are `window`, `x`, and `y`. There is no `frame`, `positioningItem`, `sourceType`, or `callback`.
-- On macOS, `popup()` **blocks** - AppKit runs a nested menu-tracking loop until the menu is dismissed. On Linux it is non-blocking.
+- On macOS and Windows, `popup()` **blocks** - a nested menu-tracking loop runs until the menu is dismissed. On Linux it is non-blocking.
 
 ```ts
 import { Menu } from 'bunmaska';
@@ -146,7 +146,7 @@ ctx.popup({ window: win, x: 120, y: 64 });
 
 Closes a popup menu. With a `window` argument it targets that window; otherwise it targets the window the popup was opened on (falling back to the focused window).
 
-On macOS this only does something useful re-entrantly - for example, from inside an item's own `click` handler - because `popup()` itself blocks until the menu is dismissed. On Linux it pops the popover down.
+Works on all three platforms. On macOS and Windows it only does something useful re-entrantly - for example, from inside an item's own `click` handler - because `popup()` itself blocks until the menu is dismissed. On Linux it pops the popover down.
 
 ```ts
 import { Menu } from 'bunmaska';
@@ -215,6 +215,7 @@ Platform notes from the source:
 
 - **macOS** wires every role to its standard first-responder selector (e.g. `copy:`, `terminate:`), routed up the responder chain.
 - **Linux** dispatches editing roles (undo/redo/cut/copy/paste/delete/selectAll/pasteAndMatchStyle) as WebKitGTK editing commands and window roles (minimize/close/zoom/togglefullscreen) as GTK window ops. Roles with neither - `quit`, `about`, `hide`, `hideOthers`, `unhide` - have **no Linux menu-click wiring yet** (their keyboard shortcuts still work natively via WebKit).
+- **Windows** role items are inert labels today - no accelerator table is installed, so neither the click nor the shortcut is wired.
 
 ```ts
 import { Menu } from 'bunmaska';
@@ -232,4 +233,4 @@ Menu.setApplicationMenu(menu);
 - **`click` callback arguments** - handlers receive nothing; there is no `(menuItem, browserWindow, event)` signature, no `KeyboardEvent` modifier flags.
 - **Dynamic `MenuItem` mutation** - items are read-only after construction. There are no settable `enabled` / `checked` / `visible` / `label` properties, no `MenuItem.sublabel`, `icon`, `toolTip`, `acceleratorWorksWhenHidden`, `registerAccelerator`, `sharingItem`, or `commandId`.
 - **Deferred roles** - `appMenu`, `viewMenu`, `fileMenu`, `recentDocuments`, `shareMenu`, `services`, `startSpeaking`/`stopSpeaking`, `toggleDevTools`, `reload`/`forceReload`, `resetZoom`/`zoomIn`/`zoomOut`, and the window-control roles (`front`, `window`, `help`) are not available. Only the role list above is supported.
-- **Windows accelerator text** - the menu bar and context menus work on Windows (Win32 `HMENU`), but accelerator/`&`-mnemonic text is not rendered into the labels yet; the shortcuts themselves still fire natively.
+- **Windows accelerator text** - the menu bar and context menus work on Windows (Win32 `HMENU`), but accelerator/`&`-mnemonic text is not rendered into the labels yet, and role items are inert labels (no accelerator table).

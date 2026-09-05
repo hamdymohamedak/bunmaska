@@ -196,7 +196,7 @@ const tile = full.crop({ x: 0, y: 0, width: 16, height: 16 });
 
 `setTemplateImage(option: boolean): void`
 
-Marks (or unmarks) the image as a template - a monochrome icon the OS recolors for light/dark UI. This is plain JS metadata on the image, mirroring Electron's own model: the macOS `NSImage setTemplate:` flag is applied when the image is _realized_ for a `Tray` or menu, not on the decoded representation here.
+Marks (or unmarks) the image as a template - a monochrome icon the OS recolors for light/dark UI. This is plain JS metadata on the image, mirroring Electron's own model: the macOS `NSImage setTemplate:` flag is applied when the image is _realized_ for a `Tray` or menu, not on the decoded representation here. A `Tray` given a `NativeImage` with `isTemplateImage()` true applies it as a template image (the menu bar inverts it for dark mode); a path ending in `Template` is not special-cased, so use this flag.
 
 ```ts
 import { nativeImage } from 'bunmaska';

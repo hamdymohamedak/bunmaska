@@ -6,6 +6,33 @@ order: 2
 
 The current version is **`0.1.0-alpha.7`** (`npm i bunmaska` installs the latest published alpha). Newest first; still a curated snapshot rather than a per-commit log.
 
+## Unreleased
+
+A documentation-versus-reality pass: every claim in the docs was checked against the code, and where they disagreed, one of them was fixed.
+
+**Fixes**
+
+- `bunmaska init my-app .` works - `init` takes `[name] [dir]`, so a named project can scaffold into the current directory.
+- A dev restart no longer steals focus from your editor: the respawned app comes up behind whatever is frontmost (macOS, Linux, Windows).
+- `bunmaska build` honours `name`, `id` and `icon` from `bunmaska.config.ts` (flag > config > entry file name). It used to read only the flags.
+- Linux builds target the host architecture: `<Name>-linux-arm64.tar.gz` and an `arm64` `.deb` on arm64 hosts, and the `.deb` carries the app's own `package.json` version instead of the framework's.
+- `engine.embed` on a Linux build is refused with a clear error (it used to silently drop the WebKitGTK dependency without shipping an engine), and `--embed-engine` is rejected for non-Windows targets.
+- `bunmaska <command> --help` prints the usage instead of "unknown flag".
+- `doctor` and `engine which` say "run bun install" when the config cannot be imported, instead of dumping the resolver stack.
+- `BrowserWindow` emits `maximize` / `unmaximize` on macOS (derived from `isZoomed` across resizes; AppKit has no zoom notification).
+- `Menu.setApplicationMenu(null)` on Linux tears down the bars of windows that already have one.
+- `Notification` `silent: true` is honoured on Linux via the freedesktop `suppress-sound` hint.
+- A `NativeImage` marked as a template renders as a template in the macOS menu bar `Tray`.
+- `MenuPopupOptions`, `WebPreferences`, `LoadFileOptions`, `MouseInputEvent`, `KeyboardInputEvent`, `NativeInputEvent` and `DEFAULT_MIME_TYPE` are exported from `bunmaska` as the docs claimed.
+
+**Docs**
+
+- The API reference, CLI, building, shipping, engine and parity pages now match the code, per platform; a new [errors](/docs/api/errors) page documents the `BunmaskaError` family.
+
+**Housekeeping**
+
+- One spawn helper for the build tools, one accelerator parser, one backend selector for the platform-split modules.
+
 ## `0.1.0-alpha.7`
 
 The dev loop, rebuilt - and updates you can actually ship. Plus the API cells the parity page had been admitting to: `session.cookies`, Linux `capturePage`, and real macOS window geometry.

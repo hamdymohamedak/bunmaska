@@ -4,7 +4,7 @@ description: "Construct items for native application and context menus in Bunmas
 order: 8
 ---
 
-A `MenuItem` is a single entry in a native menu - a normal command, a separator, a checkbox/radio toggle, or a submenu. In Bunmaska it is a plain, immutable value object: you build one from an options bag, hand it to a [`Menu`](./menu), and the menu is realized into a native `NSMenu` (macOS) or GTK menu (Linux). Unlike Electron, Bunmaska's `MenuItem` properties are **read-only** - you configure everything at construction time and you do not mutate the item afterward.
+A `MenuItem` is a single entry in a native menu - a normal command, a separator, a checkbox/radio toggle, or a submenu. In Bunmaska it is a plain, immutable value object: you build one from an options bag, hand it to a [`Menu`](./menu), and the menu is realized into a native `NSMenu` (macOS), GTK menu (Linux), or Win32 `HMENU` (Windows). Unlike Electron, Bunmaska's `MenuItem` properties are **read-only** - you configure everything at construction time and you do not mutate the item afterward.
 
 ## Class: MenuItem
 
@@ -122,6 +122,7 @@ Menu.setApplicationMenu(menu);
 
 - _macOS_ - **all** item-level roles are wired. Each maps to a standard first-responder selector (e.g. `undo:`, `terminate:`, `toggleFullScreen:`) routed up the responder chain, so they behave exactly like the native shortcut.
 - _Linux_ - only the editing roles (`undo`, `redo`, `cut`, `copy`, `paste`, `pasteAndMatchStyle`, `delete`, `selectAll`) and the window roles (`minimize`, `close`, `zoom`, `togglefullscreen`) have menu-**click** wiring. The remaining roles (`quit`, `about`, `hide`, `hideOthers`, `unhide`) render as labels with no click action on Linux today - though their keyboard shortcuts still work natively via WebKit.
+- _Windows_ - role items are inert labels today (no accelerator table).
 
 ## Not in Bunmaska (yet)
 

@@ -63,7 +63,8 @@ Emitted when the OS reports that the notification was dismissed or closed.
 Honest platform caveat:
 
 - _Linux_ - fully wired. The `NotifyNotification::closed` signal from the notification daemon is connected to this event, so `close` fires when the user (or the system) dismisses the notification.
-- _macOS_ - best-effort only. The un-bundled `NSUserNotification` path has no delegate to report a real close, so the handle's `onClosed` is a no-op; do not rely on `close` firing on macOS in the current version.
+- _Windows_ - fires when the balloon is dismissed.
+- _macOS_ - never fires. The un-bundled `NSUserNotification` path has no delegate to report a real close, so the handle's `onClosed` is a no-op.
 
 ```ts
 import { Notification } from 'bunmaska';
@@ -89,24 +90,24 @@ The bold first line of the notification. Defaults to `''`.
 
 The body text shown under the title. Defaults to `''`.
 
-### `notification.subtitle` _macOS_
+### `notification.subtitle`
 
 `subtitle: string`
 
-A secondary line shown under the title. Wired only on macOS (mapped to `NSUserNotification`'s `setSubtitle:`); the field exists on every platform but is ignored by the Linux backend. Defaults to `''`.
+A secondary line shown under the title on macOS (mapped to `NSUserNotification`'s `setSubtitle:`) and, on Windows, as the first body line; the Linux backend ignores it. Defaults to `''`.
 
 ### `notification.silent`
 
 `silent: boolean`
 
-Whether to suppress the notification sound. Works on macOS and Linux. Defaults to `false`. (On macOS, `silent: false` opts into the default sound name, since `NSUserNotification` is otherwise silent.)
+Whether to suppress the notification sound. Works on macOS, Windows and Linux (Linux sets the suppress-sound hint). Defaults to `false`. (On macOS, `silent: false` opts into the default sound name, since `NSUserNotification` is otherwise silent.)
 
 ```ts
 import { Notification } from 'bunmaska';
 
 const n = new Notification();
 n.title = 'Deploy complete';
-n.subtitle = 'production'; // macOS only
+n.subtitle = 'production'; // macOS + Windows (first body line); ignored on Linux
 n.body = 'All services are green.';
 n.silent = true;
 n.show();

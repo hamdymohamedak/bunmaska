@@ -50,7 +50,7 @@ if (error) {
 
 ### `shell.showItemInFolder(path)`
 
-Reveals a file or folder in the OS file manager, selecting it if possible (Finder on macOS, the default file manager on Linux, Explorer on Windows). Synchronous, returns `void`.
+Reveals a file or folder in the OS file manager, selecting it if possible (Finder on macOS, Explorer on Windows). On Linux it opens the parent folder without selecting the item. Synchronous, returns `void`.
 
 ```ts
 import { shell } from 'bunmaska';
@@ -72,7 +72,7 @@ shell.beep();
 
 Bunmaska implements four of Electron's `shell` methods. The following Electron members are not present in the source:
 
-- **`shell.trashItem(path)`** - moving a file to the OS trash/recycle bin is not implemented on either platform. There is no fallback; if you need it today you must shell out yourself.
+- **`shell.trashItem(path)`** - moving a file to the OS trash/recycle bin is not implemented on any platform. There is no fallback; if you need it today you must shell out yourself.
 - **`shell.openExternal` options** - the `options` argument (`activate` _macOS_, `workingDirectory` _Windows_, `logUsage` _Windows_) is not accepted. Bunmaska's `openExternal` takes only `url`.
 - **`shell.writeShortcutLink(...)` / `shell.readShortcutLink(...)`** - Windows-only shortcut (`.lnk`) APIs. Even though Bunmaska now ships on Windows, these are not implemented; they remain genuinely out of scope rather than merely "not yet."
 

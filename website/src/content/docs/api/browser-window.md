@@ -35,7 +35,7 @@ The supported `options` are a deliberately small subset of Electron's `BrowserWi
 - `resizable` boolean - whether the user can resize the window. Default `true`.
 - `frame` boolean - draw the OS frame/title bar. `false` opens a frameless window.
 - `fullscreen` boolean - open in fullscreen. Default `false`.
-- `webPreferences` object - per-window renderer preferences. The only supported key is `preload`: an absolute-resolved path to a script run in an isolated world (Electron's `contextIsolation: true`) before the page's own scripts. It is read synchronously at construction; an unreadable path throws.
+- `webPreferences` object - per-window renderer preferences. The only supported key is `preload`: an absolute-resolved path to a script run before the page's own scripts - in an isolated world on macOS and Linux (Electron's `contextIsolation: true`), in the page world on Windows (see [contextBridge](/docs/api/context-bridge)). It is read synchronously at construction; an unreadable path throws. A preload that uses `import`/`export` must go through `bunmaska dev`/`build` (they bundle it) - handed to the constructor raw, construction throws `InvalidArgumentError`.
 
 ```ts
 import { BrowserWindow } from 'bunmaska';
@@ -113,7 +113,7 @@ console.log(win.getTitle());
 
 `setSize(width: number, height: number): void`
 
-Resizes the window to `width` by `height` - the outer window (frame) size, as in Electron. On macOS the top-left corner stays anchored. There is no `animate` argument.
+Resizes the window to `width` by `height` - the outer window (frame) size, as in Electron. On macOS the top-left corner stays anchored. On Linux it sets the GTK default (content) size, not the outer frame. There is no `animate` argument.
 
 ```ts
 win.setSize(1280, 720);
@@ -213,7 +213,7 @@ const [minW, minH] = win.getMinimumSize();
 
 `setOpacity(opacity: number): void`
 
-Sets window opacity, clamped to `[0, 1]` (`1` = fully opaque). Backed by `-[NSWindow setAlphaValue:]` on macOS and `gtk_widget_set_opacity` on Linux. (This is wired on both platforms - unlike Electron, where `setOpacity` is a no-op on Linux.)
+Sets window opacity, clamped to `[0, 1]` (`1` = fully opaque). Backed by `-[NSWindow setAlphaValue:]` on macOS and `gtk_widget_set_opacity` on Linux, and wired on Windows too. (Unlike Electron, where `setOpacity` is a no-op on Linux.)
 
 ```ts
 win.setOpacity(0.85);
@@ -233,7 +233,7 @@ console.log(win.getOpacity()); // 0.85
 
 `center(): void`
 
-Centers the window on the current screen. _macOS only_ in practice: on _Linux_ this is a deliberate no-op, since GTK4 removed programmatic positioning and Wayland forbids clients from moving themselves (the compositor places the window).
+Centers the window on the current screen. Works on macOS and Windows; on _Linux_ this is a deliberate no-op, since GTK4 removed programmatic positioning and Wayland forbids clients from moving themselves (the compositor places the window).
 
 ```ts
 win.center();
@@ -374,10 +374,10 @@ if (win.isFullScreen()) win.setFullScreen(false);
 
 `setAlwaysOnTop(flag: boolean): void`
 
-Sets whether the window floats above other windows. _macOS only_: backed by `-[NSWindow setLevel:]` (floating level). On _Linux_ this is a best-effort no-op - GTK4 dropped the keep-above hint and offers no portable client API.
+Sets whether the window floats above other windows. Works on macOS (`-[NSWindow setLevel:]`, floating level) and Windows. On _Linux_ this is a best-effort no-op - GTK4 dropped the keep-above hint and offers no portable client API.
 
 ```ts
-win.setAlwaysOnTop(true); // honored on macOS, no-op on Linux
+win.setAlwaysOnTop(true); // honored on macOS and Windows, no-op on Linux
 ```
 
 ### `win.close()`
@@ -502,23 +502,23 @@ Emitted after the window has been moved - a user drag or a programmatic `setPosi
 
 ### Event: 'maximize'
 
-Emitted when the window is maximized.
+Emitted when the window is maximized. Fires on all three platforms (macOS via the window delegate).
 
 ### Event: 'unmaximize'
 
-Emitted when the window leaves a maximized state.
+Emitted when the window leaves a maximized state. Fires on all three platforms.
 
 ### Event: 'minimize'
 
-Emitted when the window is minimized.
+Emitted when the window is minimized. Never fires on Linux - GTK4 exposes no minimized state (`isMinimized()` still tracks what you called).
 
 ### Event: 'restore'
 
-Emitted when the window is restored from a minimized state.
+Emitted when the window is restored from a minimized state. Never fires on Linux, for the same reason as `minimize`.
 
 ### Event: 'ready-to-show'
 
-Emitted when the page has been rendered (while not yet shown) and the window can be displayed without a visual flash. The standard pattern is to construct with `show: false` and show on this event.
+Emitted when the page has been rendered (while not yet shown) and the window can be displayed without a visual flash. Fires at `dom-ready` on Windows and at the first `did-finish-load` on macOS and Linux. The standard pattern is to construct with `show: false` and show on this event.
 
 ```ts
 const win = new BrowserWindow({ show: false });

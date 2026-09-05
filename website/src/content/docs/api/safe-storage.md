@@ -14,7 +14,7 @@ One deliberate divergence from Electron: there is **no `basic_text` fallback**. 
 
 ### `safeStorage.isEncryptionAvailable()`
 
-Returns `boolean` - whether a keyring-backed key is available, so `encryptString` / `decryptString` can run. Never throws. On macOS this is true when the Keychain is reachable; on Linux when libsecret is present; on Windows it returns `true` via DPAPI. On any host with no keyring (and no DPAPI) it returns `false`. The result is probed once and memoised for the process.
+Returns `boolean` - whether a keyring-backed key is available, so `encryptString` / `decryptString` can run. Never throws. On macOS this is true when the Keychain is reachable; on Linux only when `BUNMASKA_ENABLE_LINUX_KEYRING=1` is set and libsecret is present; on Windows it returns `true` via DPAPI. On any host with no keyring (and no DPAPI) it returns `false`. The result is probed once and memoised for the process.
 
 ```ts
 import { safeStorage } from 'bunmaska';

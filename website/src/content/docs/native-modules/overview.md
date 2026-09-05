@@ -13,13 +13,14 @@ A native module is a TypeScript file that `dlopen`s a system library and calls i
 
 ```ts
 // A native module. No build step. No bindings.gyp. Just Bun.
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { dlopen, FFIType } from "bun:ffi";
 
-const { symbols: libc } = dlopen("libc.so.6", {
+const libc = process.platform === "darwin" ? "libSystem.B.dylib" : "libc.so.6";
+const { symbols } = dlopen(libc, {
   getpid: { args: [], returns: FFIType.i32 },
 });
 
-export const pid = () => libc.getpid();
+export const pid = () => symbols.getpid();
 ```
 
 It's not aspirational - it's how Bunmaska itself is built. About thirty system libraries (AppKit, IOKit, Carbon, CoreGraphics, GTK4, WebKitGTK, libsecret, …) are wired exactly this way, with zero compiled native code in the tree.

@@ -148,7 +148,7 @@ type ProtocolResponse = {
 type ProtocolHandler = (request: ProtocolRequest) => ProtocolResponse | undefined;
 ```
 
-There is also an exported `DEFAULT_MIME_TYPE` constant (`'text/html'`) on the module, used when a handler omits `mimeType`.
+`DEFAULT_MIME_TYPE` (`'text/html'`) - the value used when a handler omits `mimeType` - is exported from `bunmaska` itself; it is not a property of the `protocol` object.
 
 ## Not in Bunmaska (yet)
 

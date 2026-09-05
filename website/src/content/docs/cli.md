@@ -7,13 +7,17 @@ order: 2
 
 Installing the package gives you the `bunmaska` command - your **developer tool**. The whole development loop lives here: scaffold, run, package. It is not bundled into your app and your users never install it; what they get is a standalone executable (see [Shipping Your App](/docs/shipping)). Everything below is for you, not them.
 
-## `bunmaska init [name]`
+## `bunmaska init [dir]`
 
-Scaffolds a runnable starter from an embedded template: a `main.ts`, a `preload.js`, a renderer (`index.html` + script), a `bunmaska.config.ts`, and a `package.json` wired to depend on `bunmaska`.
+Scaffolds a runnable starter from an embedded template: a `main.ts`, a `preload.js`, a renderer (`index.html` + script), a `bunmaska.config.ts`, and a `package.json` wired to depend on `bunmaska`. The app is named after the directory unless you name it yourself.
 
 ```sh
-bunmaska init my-app
+bunmaska init my-app        # creates ./my-app, named my-app
+bunmaska init .             # scaffolds into the current directory, named after it
+bunmaska init my-app .      # scaffolds into the current directory, named my-app
 ```
+
+It refuses to overwrite: if any file it would write already exists, nothing is written.
 
 ## `bunmaska dev`
 

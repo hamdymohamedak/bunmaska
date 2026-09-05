@@ -50,6 +50,7 @@ const USAGE = `bunmaska ${BUNMASKA_VERSION}
 
 Usage:
   bunmaska init [dir]                    Scaffold a new Bunmaska project (default: .)
+  bunmaska init <name> <dir>             ...named <name>, e.g. init my-app .
   bunmaska dev [entry.ts]                Run the app, restarting on file changes
   bunmaska run <entry.ts> [args...]      Launch a Bunmaska app (bun run <entry>)
   bunmaska build [entry.ts] [options]    Bundle a distributable app (entry defaults
@@ -341,7 +342,7 @@ const notarizeCredentials = ():
 const runInitCommand = (command: Extract<Command, { kind: 'init' }>): number => {
   let result: ReturnType<typeof runInit>;
   try {
-    result = runInit(command.dir);
+    result = runInit(command.dir, undefined, command.name);
   } catch (error) {
     err(error instanceof Error ? error.message : String(error));
     return 1;

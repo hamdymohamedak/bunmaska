@@ -243,9 +243,13 @@ export type InitResult = {
  * The bundle id defaults to `com.example.<slug>`. Throws if any target file
  * already exists.
  */
-export const runInit = (targetDir: string, deps: ScaffoldDeps = defaultDeps): InitResult => {
+export const runInit = (
+  targetDir: string,
+  deps: ScaffoldDeps = defaultDeps,
+  explicitName?: string,
+): InitResult => {
   const dir = resolve(targetDir);
-  const name = deriveProjectName(dir);
+  const name = explicitName?.trim() || deriveProjectName(dir);
   const id = `com.example.${slugifyName(name)}`;
   const files = initTemplateFiles({ name, id });
   const written = scaffoldProject(dir, files, deps);

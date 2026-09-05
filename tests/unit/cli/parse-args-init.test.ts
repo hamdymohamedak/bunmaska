@@ -10,11 +10,16 @@ describe('parseArgs init', () => {
     expect(parseArgs(['init', 'my-app'])).toEqual({ kind: 'init', dir: 'my-app' });
   });
 
+  test('init with a name and a dir scaffolds that name into that dir', () => {
+    // `bunmaska init my-app .` - the create-react-app shape people reach for.
+    expect(parseArgs(['init', 'my-app', '.'])).toEqual({ kind: 'init', dir: '.', name: 'my-app' });
+  });
+
   test('init with extra arguments errors', () => {
-    const command = parseArgs(['init', 'a', 'b']);
+    const command = parseArgs(['init', 'a', 'b', 'c']);
     expect(command.kind).toBe('error');
     if (command.kind === 'error') {
-      expect(command.message).toContain('unexpected argument b');
+      expect(command.message).toContain('unexpected argument c');
     }
   });
 });

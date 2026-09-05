@@ -41,7 +41,7 @@ export type EngineSubcommand =
 export type Command =
   | { readonly kind: 'help' }
   | { readonly kind: 'version' }
-  | { readonly kind: 'init'; readonly dir: string }
+  | { readonly kind: 'init'; readonly dir: string; readonly name?: string }
   | { readonly kind: 'dev'; readonly entry?: string }
   | { readonly kind: 'run'; readonly entry: string; readonly args: readonly string[] }
   | { readonly kind: 'build'; readonly entry?: string; readonly options: BuildOptions }
@@ -75,12 +75,16 @@ const BUILD_TARGETS: ReadonlySet<BuildTarget> = new Set<BuildTarget>(['macos', '
 const isBuildTarget = (value: string): value is BuildTarget =>
   BUILD_TARGETS.has(value as BuildTarget);
 
+/** `init [dir]` scaffolds into dir; `init <name> <dir>` also names the app. */
 const parseInit = (rest: readonly string[]): Command => {
-  const [dir, ...extra] = rest;
+  const [first, second, ...extra] = rest;
   if (extra.length > 0) {
     return { kind: 'error', message: `bunmaska init: unexpected argument ${extra[0]}` };
   }
-  return { kind: 'init', dir: dir ?? '.' };
+  if (first !== undefined && second !== undefined) {
+    return { kind: 'init', dir: second, name: first };
+  }
+  return { kind: 'init', dir: first ?? '.' };
 };
 
 const parseDev = (rest: readonly string[]): Command => {

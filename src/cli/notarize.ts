@@ -4,7 +4,8 @@
  */
 
 import { rmSync } from 'node:fs';
-import { buildNotarizeArgs, buildStapleArgs, runTool } from './build-macos';
+import { buildNotarizeArgs, buildStapleArgs } from './build-macos';
+import { runTool } from './run-tool';
 
 export type NotarizeCredentials = {
   readonly appleId: string;

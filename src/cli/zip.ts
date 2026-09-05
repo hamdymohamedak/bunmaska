@@ -124,16 +124,7 @@ const endOfCentralDir = (count: number, cdSize: number, cdOffset: number): Uint8
   return eocd;
 };
 
-const concat = (chunks: readonly Uint8Array[]): Uint8Array => {
-  const total = chunks.reduce((n, chunk) => n + chunk.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return out;
-};
+const concat = (chunks: readonly Uint8Array[]): Uint8Array => Buffer.concat(chunks);
 
 /**
  * Entry paths use `/` separators. Local headers + data, then the central

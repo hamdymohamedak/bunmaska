@@ -1,6 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { UnsupportedPlatformError } from '../../common/errors';
-import { currentPlatform } from '../../common/platform';
+import { selectBackend } from '../platform/index';
 import { linuxNotificationBackend } from '../platform/linux/gtk-notification';
 import { macosNotificationBackend } from '../platform/macos/cocoa-notification';
 import { windowsNotificationBackend } from '../platform/windows/windows-notification';
@@ -43,28 +42,14 @@ export type NotificationBackend = {
 const macosBackend: NotificationBackend = macosNotificationBackend;
 const linuxBackend: NotificationBackend = linuxNotificationBackend;
 
-let backend: NotificationBackend | undefined;
-
-const getBackend = (): NotificationBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return macosBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return linuxBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsNotificationBackend;
-  }
-  throw new UnsupportedPlatformError(`Notification is not supported on ${currentPlatform()} yet`);
-};
+const { get: getBackend, setForTesting } = selectBackend<NotificationBackend>('Notification', {
+  macos: () => macosBackend,
+  linux: () => linuxBackend,
+  windows: () => windowsNotificationBackend,
+});
 
 /** @internal */
-export const setNotificationBackendForTesting = (fake: NotificationBackend | undefined): void => {
-  backend = fake;
-};
+export const setNotificationBackendForTesting = setForTesting;
 
 export class Notification extends EventEmitter {
   /** The bold first line. */

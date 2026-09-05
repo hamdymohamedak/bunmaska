@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { selectBackend } from '../platform/index';
 import { BunmaskaError, InvalidArgumentError } from '../../common/errors';
 import { currentPlatform } from '../../common/platform';
 import { linuxLibsecretBackend } from '../platform/linux/libsecret-keyring';
@@ -80,26 +81,14 @@ const unavailableBackend: KeyringBackend = {
   },
 };
 
-let backend: KeyringBackend | undefined;
 let cachedKey: Buffer | undefined;
 let cachedAvailable: boolean | undefined;
-
-const getBackend = (): KeyringBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  const platform = currentPlatform();
-  if (platform === 'macos') {
-    return macosKeychainBackend;
-  }
-  if (platform === 'linux') {
-    return linuxLibsecretBackend;
-  }
-  if (platform === 'windows') {
-    return windowsDpapiBackend;
-  }
-  return unavailableBackend;
-};
+const { get: getBackend, setForTesting } = selectBackend<KeyringBackend>('safeStorage', {
+  macos: () => macosKeychainBackend,
+  linux: () => linuxLibsecretBackend,
+  windows: () => windowsDpapiBackend,
+  fallback: () => unavailableBackend,
+});
 
 /** Probed once then memoised, as Electron caches at startup. */
 const isAvailable = (): boolean => {
@@ -128,7 +117,7 @@ const getKey = (): Buffer => {
 
 /** Also clears the cached key and availability. @internal */
 export const setSafeStorageBackendForTesting = (fake: KeyringBackend | undefined): void => {
-  backend = fake;
+  setForTesting(fake);
   cachedKey = undefined;
   cachedAvailable = undefined;
 };

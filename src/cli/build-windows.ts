@@ -10,6 +10,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync
 import { join } from 'node:path';
 import { BUNMASKA_VERSION } from '../common/version';
 import { bundlePreloadAssets, copyAppAssets } from './app-assets';
+import { runTool } from './run-tool';
 import { bundleIdSlug } from './build-macos';
 import { buildZipArchive, type ZipEntry } from './zip';
 
@@ -96,15 +97,6 @@ export const buildCompileArgs = (
   return args;
 };
 
-const spawnOk = async (cmd: readonly string[]): Promise<void> => {
-  const proc = Bun.spawn(cmd as string[], { stdout: 'pipe', stderr: 'pipe' });
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`${cmd[0]} failed (exit ${exitCode}):\n${stderr}`);
-  }
-};
-
 /**
  * Spawns the RUNNING Bun (`process.execPath`) rather than a bare `bun`, so the
  * build does not depend on Bun being on `$PATH`.
@@ -114,7 +106,10 @@ const compileWindowsBinary = async (
   outfile: string,
   meta: WindowsMetadata,
 ): Promise<void> => {
-  await spawnOk([process.execPath, ...buildCompileArgs(entry, outfile, meta)]);
+  await runTool('bun build --compile', [
+    process.execPath,
+    ...buildCompileArgs(entry, outfile, meta),
+  ]);
 };
 
 /**

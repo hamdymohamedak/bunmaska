@@ -9,6 +9,7 @@ import { dirname, join, posix } from 'node:path';
 import { isSystemEngine, parseEngineId } from '../common/engine-id';
 import { BUNMASKA_VERSION } from '../common/version';
 import { bundlePreloadAssets, copyAppAssets } from './app-assets';
+import { runTool } from './run-tool';
 import { bundleIdSlug } from './build-macos';
 
 export type LinuxLayout = {
@@ -124,48 +125,22 @@ const arMember = (name: string, content: Uint8Array): Uint8Array => {
     arField(String(content.length), 10) + // size
     '`\n'; // two-byte member-header terminator
   const headerBytes = new TextEncoder().encode(header);
-  const needsPad = content.length % 2 === 1;
-  const out = new Uint8Array(headerBytes.length + content.length + (needsPad ? 1 : 0));
-  out.set(headerBytes, 0);
-  out.set(content, headerBytes.length);
-  if (needsPad) {
-    out[headerBytes.length + content.length] = 0x0a; // '\n'
-  }
-  return out;
+  // ar pads an odd-length member with one '\n' so the next header is even-aligned.
+  const pad = content.length % 2 === 1 ? [Buffer.from('\n')] : [];
+  return Buffer.concat([headerBytes, content, ...pad]);
 };
 
 export const buildArArchive = (
   members: readonly { name: string; content: Uint8Array }[],
 ): Uint8Array => {
-  const parts = [
+  return Buffer.concat([
     new TextEncoder().encode('!<arch>\n'),
     ...members.map((m) => arMember(m.name, m.content)),
-  ];
-  const total = parts.reduce((n, p) => n + p.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
-};
-
-const spawnOk = async (cmd: readonly string[], cwd?: string): Promise<void> => {
-  const proc = Bun.spawn(cmd as string[], {
-    ...(cwd !== undefined ? { cwd } : {}),
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`${cmd[0]} failed (exit ${exitCode}):\n${stderr}`);
-  }
+  ]);
 };
 
 const compileLinuxBinary = async (entry: string, outfile: string): Promise<void> => {
-  await spawnOk([
+  await runTool('bun build --compile', [
     'bun',
     'build',
     entry,
@@ -234,7 +209,7 @@ export const buildLinuxApp = async (opts: BuildLinuxAppOptions): Promise<BuildLi
 
   // -C keeps the archived paths relative to <out>.
   const tarball = join(out, tarballName(opts.name));
-  await spawnOk(['tar', '-czf', tarball, '-C', out, opts.name]);
+  await runTool('tar', ['tar', '-czf', tarball, '-C', out, opts.name]);
 
   // An embedded engine ships its own WebKitGTK, so it needs no system Depends.
   const depends = opts.embedEngine === true ? [] : DEFAULT_LINUX_DEPENDS;
@@ -275,10 +250,10 @@ const packageDeb = async (args: {
   );
 
   const controlTar = join(staging, 'control.tar.gz');
-  await spawnOk(['tar', '-czf', controlTar, '-C', controlDir, 'control']);
+  await runTool('tar', ['tar', '-czf', controlTar, '-C', controlDir, 'control']);
 
   const dataTar = join(staging, 'data.tar.gz');
-  await spawnOk(['tar', '-czf', dataTar, '-C', layout.appDir, 'usr']);
+  await runTool('tar', ['tar', '-czf', dataTar, '-C', layout.appDir, 'usr']);
 
   const debPath = join(out, debFileName(name, version));
   const archive = buildArArchive([

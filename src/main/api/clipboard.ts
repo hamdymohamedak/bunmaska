@@ -1,5 +1,4 @@
-import { UnsupportedPlatformError } from '../../common/errors';
-import { currentPlatform } from '../../common/platform';
+import { selectBackend } from '../platform/index';
 import { linuxClipboardBackend } from '../platform/linux/gtk-clipboard';
 import * as macosClipboard from '../platform/macos/cocoa-clipboard';
 import { windowsClipboardBackend } from '../platform/windows/windows-clipboard';
@@ -51,28 +50,14 @@ const macosBackend: ClipboardBackend = {
   clear: () => macosClipboard.clear(),
 };
 
-let backend: ClipboardBackend | undefined;
+const { get: getBackend, setForTesting } = selectBackend<ClipboardBackend>('clipboard', {
+  macos: () => macosBackend,
+  linux: () => linuxClipboardBackend,
+  windows: () => windowsClipboardBackend,
+});
 
-const getBackend = (): ClipboardBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return macosBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return linuxClipboardBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsClipboardBackend;
-  }
-  throw new UnsupportedPlatformError(`clipboard is not supported on ${currentPlatform()} yet`);
-};
-
-/** Override the native clipboard backend. Test-only. */
-export const setClipboardBackendForTesting = (fake: ClipboardBackend | undefined): void => {
-  backend = fake;
-};
+/** @internal */
+export const setClipboardBackendForTesting = setForTesting;
 
 export const clipboard: Clipboard = {
   // `Promise.resolve` flattens a sync string (macOS) or a Promise (Linux/macOS

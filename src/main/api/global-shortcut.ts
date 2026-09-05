@@ -1,4 +1,4 @@
-import { UnsupportedPlatformError } from '../../common/errors';
+import { selectBackend } from '../platform/index';
 import { currentPlatform } from '../../common/platform';
 import { linuxGlobalShortcutBackend } from '../platform/linux/x11-global-shortcut';
 import { macosGlobalShortcutBackend } from '../platform/macos/carbon-global-shortcut';
@@ -31,30 +31,14 @@ export type GlobalShortcutBackend = {
 const macosBackend: GlobalShortcutBackend = macosGlobalShortcutBackend;
 const linuxBackend: GlobalShortcutBackend = linuxGlobalShortcutBackend;
 
-let backend: GlobalShortcutBackend | undefined;
-
-const getBackend = (): GlobalShortcutBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return macosBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return linuxBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsGlobalShortcutBackend;
-  }
-  throw new UnsupportedPlatformError(`globalShortcut is not supported on ${currentPlatform()} yet`);
-};
+const { get: getBackend, setForTesting } = selectBackend<GlobalShortcutBackend>('globalShortcut', {
+  macos: () => macosBackend,
+  linux: () => linuxBackend,
+  windows: () => windowsGlobalShortcutBackend,
+});
 
 /** @internal */
-export const setGlobalShortcutBackendForTesting = (
-  fake: GlobalShortcutBackend | undefined,
-): void => {
-  backend = fake;
-};
+export const setGlobalShortcutBackendForTesting = setForTesting;
 
 /** Keyed by the LITERAL accelerator string, not the parsed form. */
 const registry = new Set<string>();

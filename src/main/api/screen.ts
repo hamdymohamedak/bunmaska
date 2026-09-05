@@ -1,5 +1,5 @@
-import { BunmaskaError, UnsupportedPlatformError } from '../../common/errors';
-import { currentPlatform } from '../../common/platform';
+import { BunmaskaError } from '../../common/errors';
+import { selectBackend } from '../platform/index';
 import { gdkScreenBackend } from '../platform/linux/gdk-screen';
 import { cocoaScreenBackend } from '../platform/macos/cocoa-screen';
 import type { Rect } from '../platform/native';
@@ -71,28 +71,14 @@ const toDisplay = (raw: RawDisplay): Display => ({
   internal: raw.internal,
 });
 
-let backend: ScreenBackend | undefined;
-
-const getBackend = (): ScreenBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return cocoaScreenBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return gdkScreenBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsScreenBackend;
-  }
-  throw new UnsupportedPlatformError(`screen is not supported on ${currentPlatform()} yet`);
-};
+const { get: getBackend, setForTesting } = selectBackend<ScreenBackend>('screen', {
+  macos: () => cocoaScreenBackend,
+  linux: () => gdkScreenBackend,
+  windows: () => windowsScreenBackend,
+});
 
 /** @internal */
-export const setScreenBackendForTesting = (fake: ScreenBackend | undefined): void => {
-  backend = fake;
-};
+export const setScreenBackendForTesting = setForTesting;
 
 const rawDisplays = (): readonly RawDisplay[] => getBackend().getDisplays();
 

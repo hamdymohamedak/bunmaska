@@ -8,8 +8,8 @@
  */
 
 import { InvalidArgumentError, UnsupportedPlatformError } from '../../common/errors';
+import { selectBackend } from '../platform/index';
 import { ensureNativeStarted } from '../bootstrap';
-import { currentPlatform } from '../../common/platform';
 import {
   type Cookie,
   type CookieFilter,
@@ -49,27 +49,17 @@ const linuxBackend: SessionBackend = {
   removeCookie: (url, name) => linuxCookies.removeCookie(url, name),
 };
 
-let backend: SessionBackend | undefined;
+const { get: getBackend, setForTesting } = selectBackend<SessionBackend>('session', {
+  macos: () => macosBackend,
+  linux: () => linuxBackend,
+  windows: () => windowsSessionBackend,
+});
 
-const getBackend = (): SessionBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return macosBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return linuxBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsSessionBackend;
-  }
-  throw new UnsupportedPlatformError(`session is not supported on ${currentPlatform()} yet`);
-};
-
-/** Override the native session backend. Test-only. */
+let fakeInstalled = false;
+/** @internal */
 export const setSessionBackendForTesting = (fake: SessionBackend | undefined): void => {
-  backend = fake;
+  fakeInstalled = fake !== undefined;
+  setForTesting(fake);
 };
 
 /**
@@ -84,7 +74,7 @@ export class Cookies {
   #ensureStarted(): void {
     // With a fake backend installed there is no pump to start, and unit tests
     // must never require a display.
-    if (backend === undefined) {
+    if (!fakeInstalled) {
       ensureNativeStarted();
     }
   }

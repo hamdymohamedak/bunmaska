@@ -4,7 +4,7 @@ description: "Send asynchronous and fire-and-forget messages from a renderer pro
 order: 5
 ---
 
-The `ipcRenderer` module lets a renderer process (your web page) talk to the main process: fire-and-forget `send`, request/response `invoke`, and listeners for messages pushed back from main. It is a thin, typed wrapper over the `globalThis.__bunmaska` bridge that Bunmaska's preload bootstrap installs into every page, and it works the same on macOS (WKWebView) and Linux (WebKitGTK).
+The `ipcRenderer` module lets a renderer process (your web page) talk to the main process: fire-and-forget `send`, request/response `invoke`, and listeners for messages pushed back from main. It is a thin, typed wrapper over the `globalThis.__bunmaska` bridge that Bunmaska's preload bootstrap installs into every page, and it works on all three platforms - macOS (WKWebView), Linux (WebKitGTK), and Windows (WinCairo, where it runs in the page world).
 
 Unlike Electron, Bunmaska's `ipcRenderer` is **not** an `EventEmitter` - it is a plain object with a fixed set of methods. There is no `sendSync`, no `postMessage`, and no `<webview>`/`sendToHost`. The `event` argument passed to listeners is currently a placeholder (an empty object), so don't reach for `event.sender` or `event.ports` yet.
 

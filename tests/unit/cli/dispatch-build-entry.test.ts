@@ -53,7 +53,8 @@ describe('dispatch resolves the build entry from bunmaska.config.ts', () => {
     );
     expect(code).toBe(0);
     expect(captured?.entry).toBe('src/main.ts');
-    expect(captured?.name).toBe('main');
+    // The scaffold writes `name` into bunmaska.config.ts; build must honour it.
+    expect(captured?.name).toBe('Demo');
   });
 
   test('an explicit entry still wins over the config', async () => {

@@ -5,15 +5,19 @@ seoTitle: "The bunmaska CLI - init, dev, build, engine store"
 order: 2
 ---
 
-Installing the package gives you the `bunmaska` command - your **developer tool**. The whole development loop lives here: scaffold, run, package. It is not bundled into your app and your users never install it; what they get is a standalone executable (see [Shipping Your App](/docs/shipping)). Everything below is for you, not them.
+Installing the package gives you the `bunmaska` command - your **developer tool**. The whole development loop lives here: scaffold, run, package. It is not bundled into your app and your users never install it; what they get is a standalone executable (see [Shipping Your App](/docs/shipping)). Everything below is for you, not them. `bunmaska <command> --help` prints the usage for any of them.
 
-## `bunmaska init [name]`
+## `bunmaska init [dir]`
 
-Scaffolds a runnable starter from an embedded template: a `main.ts`, a `preload.js`, a renderer (`index.html` + script), a `bunmaska.config.ts`, and a `package.json` wired to depend on `bunmaska`.
+Scaffolds a runnable starter from an embedded template: `src/main.ts`, `src/preload.js`, a renderer (`src/index.html` + script), a `bunmaska.config.ts`, a `package.json` wired to depend on `bunmaska`, plus a `.gitignore` and a `README.md`. The app is named after the directory unless you name it yourself.
 
 ```sh
-bunmaska init my-app
+bunmaska init my-app        # creates ./my-app, named my-app
+bunmaska init .             # scaffolds into the current directory, named after it
+bunmaska init my-app .      # scaffolds into the current directory, named my-app
 ```
+
+It refuses to overwrite: if any file it would write already exists, nothing is written.
 
 ## `bunmaska dev`
 
@@ -31,12 +35,12 @@ Runs your app and reacts to file changes (debounced). This is what you'll have o
 bunmaska dev
 ```
 
-## `bunmaska run <entry>`
+## `bunmaska run <entry> [args...]`
 
-Runs an entry file once, no watching. Equivalent to `bun run <entry>` with Bunmaska's runtime wiring.
+Runs an entry file once, no watching. Equivalent to `bun run <entry>` with Bunmaska's runtime wiring; trailing arguments are forwarded to the app.
 
 ```sh
-bunmaska run src/main.ts
+bunmaska run src/main.ts --verbose
 ```
 
 ## `bunmaska build`
@@ -45,12 +49,15 @@ Compiles your app with `bun build --compile`, bundles it next to the Bun runtime
 
 - **macOS** - a `.app` bundle (with a `.icns` converted from your PNG), optional code-signing/notarization, and a `.dmg`.
 - **Linux** - an AppDir `.tar.gz` and a `.deb`.
+- **Windows** (`--target windows`) - a portable `<Name>/` directory and a `.zip` (x64); `--embed-engine <dir>` bundles a WinCairo engine into it.
+
+`--embed-engine`, `--sign`, `--notarize` and `--dmg` are rejected for targets they do not apply to.
 
 ```sh
 bunmaska build
 ```
 
-The entry defaults to the `entry` in your `bunmaska.config.ts` (the `init` scaffold sets it); pass it explicitly (`bunmaska build src/main.ts`) to override.
+The entry defaults to the `entry` in your `bunmaska.config.ts` (the `init` scaffold sets it); pass it explicitly (`bunmaska build src/main.ts`) to override. `name`, `id` and `icon` are read from the same config when the flags are not given - flag beats config, config beats the fallback derived from the entry file name.
 
 ## `bunmaska build --update`
 
@@ -78,10 +85,14 @@ Manages the pinned-WebKit engine store - the opt-in "tested == shipped" tier. Se
 bunmaska engine list             # installed engines (side by side) + refcounts
 bunmaska engine available        # engines published on the feed (marks installed + this-machine)
 bunmaska engine which [dir]      # the engine a project resolves
+bunmaska engine install <id>     # an engine-id, fetched from the feed
 bunmaska engine install <path>   # install a local engine directory
 bunmaska engine install <url>    # install a published .tar.zst - signature + hash verified
 bunmaska engine use <id>         # print the per-project config to add (there is no --global)
+bunmaska engine use <id> --for <dir>   # same, for a project in another directory
 bunmaska engine prune            # garbage-collect engines no installed app references
+bunmaska engine prune --dry-run  # preview what prune would remove
+bunmaska engine prune --force    # prune even when no app has registered a dependency yet
 bunmaska engine verify <id>      # structural integrity check on an installed engine
 ```
 
@@ -89,7 +100,7 @@ Most apps never touch this - the system WebKit default is the right answer for t
 
 ## `bunmaska doctor [dir]`
 
-A quick health report: the Bun version, the platform, the engine store, and the engine the current project resolves (and whether it's installed). Run it when something engine-related looks off.
+A quick health report: the Bun version, the platform, the engine store, and the engine the current project resolves (and whether it's installed). It exits 1 when the project pins a full engine id that is not installed, and tells you to run `bun install` in the project when it has no `node_modules`. Run it when something engine-related looks off.
 
 ```sh
 bunmaska doctor

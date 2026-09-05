@@ -120,3 +120,16 @@ describe('loadConfigFile / loadConfig', () => {
     expect(await loadConfig(dir)).toEqual({ config: { name: 'Loaded' }, configPath: path });
   });
 });
+
+describe('loadConfigFile on an unresolvable import', () => {
+  test('says to run bun install instead of dumping the resolver stack', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bunmaska-config-'));
+    const path = join(dir, 'bunmaska.config.ts');
+    writeFileSync(
+      path,
+      "import { defineConfig } from 'definitely-not-installed-zz';\nexport default defineConfig({});\n",
+    );
+    await expect(loadConfigFile(path)).rejects.toThrow(/Run bun install in/);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});

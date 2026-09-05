@@ -104,7 +104,7 @@ console.log(app.getAppPath())
 
 * `name` string - one of: `home`, `appData`, `userData`, `sessionData`, `temp`, `exe`, `module`, `desktop`, `documents`, `downloads`, `music`, `pictures`, `videos`, `logs`, `crashDumps`.
 
-Returns `string` - a path to the special directory associated with `name`, honoring any override set via `setPath`.
+Returns `string` - a path to the special directory associated with `name`, honoring any override set via `setPath`. An unknown name throws `InvalidArgumentError`.
 
 Bunmaska supports the common subset of Electron's names. It does **not** support `recent` (Windows-only in Electron anyway) or `assets`.
 
@@ -302,7 +302,7 @@ console.log(app.getBadgeCount())
 
 * `additionalData` unknown (optional) - JSON-serializable data forwarded to the primary instance.
 
-Returns `boolean` - `true` if this is the primary instance and your app should continue loading; `false` if another instance already holds the lock (in which case this process's `argv`/`cwd`/`additionalData` have been handed to the primary via its `second-instance` event, and you should quit).
+Returns `boolean` - `true` if this is the primary instance and your app should continue loading; `false` if another instance already holds the lock (in which case this process's `argv`/`cwd`/`additionalData` have been handed to the primary via its `second-instance` event, and you should quit); the lock is unverified on Windows.
 
 ```ts
 import { app, BrowserWindow } from 'bunmaska'
@@ -527,4 +527,4 @@ Bunmaska implements the lifecycle, paths, metadata, locale, single-instance, and
 - **`getPath` names** - `recent` and `assets` are not supported.
 - **Properties** - `commandLine`, `runningUnderARM64Translation`, and `accessibilitySupportEnabled` are not exposed.
 - **Windows taskbar/jump-list APIs** - `setUserTasks`, `getJumpListSettings`, `setJumpList`, `setAppUserModelId`, `setToastActivatorCLSID`, and the `toastActivatorCLSID` property. (Bunmaska runs on Windows, but these jump-list/taskbar extras are not wired on any platform yet.)
-- **Events** - many Electron `app` events are not emitted by this module, including `will-finish-launching`, `certificate-error`, `select-client-certificate`, `login`, `gpu-info-update`, `render-process-gone`, `child-process-gone`, `accessibility-support-changed`, `session-created`, and the macOS `did-become-active` / `did-resign-active` / `new-window-for-tab` events. Some cross-cutting events that Electron raises on `app` (e.g. `activate`, `open-url`, `open-file`, `browser-window-created`/`-focus`/`-blur`, `web-contents-created`) are reserved as listenable names but are emitted by the window/web-contents subsystems rather than by this module - consult those modules' docs for current coverage.
+- **Events** - many Electron `app` events are not emitted by this module, including `will-finish-launching`, `certificate-error`, `select-client-certificate`, `login`, `gpu-info-update`, `render-process-gone`, `child-process-gone`, `accessibility-support-changed`, `session-created`, and the macOS `did-become-active` / `did-resign-active` / `new-window-for-tab` events. `activate`, `open-url` and `open-file` are emitted on macOS only (Dock reopen and Apple events) - never on Linux or Windows. Other cross-cutting events that Electron raises on `app` (`browser-window-created`/`-focus`/`-blur`, `web-contents-created`) are reserved as listenable names but are emitted by the window/web-contents subsystems rather than by this module - consult those modules' docs for current coverage.

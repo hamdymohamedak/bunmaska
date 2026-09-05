@@ -1,4 +1,5 @@
 import { FFIType, JSCallback, ptr, read } from 'bun:ffi';
+import { isDevRestart } from '../../dev-reload';
 import { FFIError } from '../../../common/errors';
 import { cstr } from '../cstr';
 import type { WindowEventType } from '../native';
@@ -32,6 +33,7 @@ const WS_THICKFRAME = 0x00040000;
 const WS_MAXIMIZEBOX = 0x00010000;
 
 const SW_HIDE = 0;
+const SW_SHOWNOACTIVATE = 4;
 const SW_SHOW = 5;
 
 /** `WM_NCLBUTTONDOWN` + `HTCAPTION`: tell the system to start moving the window
@@ -467,12 +469,14 @@ export class NativeWin32Window {
 
   show(): void {
     const user32 = loadUser32().symbols;
-    user32.ShowWindow(this.#hwnd, SW_SHOW);
+    // A dev respawn must not take focus from the editor.
+    const mode = isDevRestart() ? SW_SHOWNOACTIVATE : SW_SHOW;
+    user32.ShowWindow(this.#hwnd, mode);
     // The process's FIRST ShowWindow can be overridden by the launcher's
     // STARTUPINFO.wShowWindow (e.g. a hidden child process), leaving the window
     // hidden; a second call always honors SW_SHOW.
     if (user32.IsWindowVisible(this.#hwnd) === 0) {
-      user32.ShowWindow(this.#hwnd, SW_SHOW);
+      user32.ShowWindow(this.#hwnd, mode);
     }
     this.emit('show');
   }

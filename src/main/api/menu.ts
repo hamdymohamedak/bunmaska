@@ -1,6 +1,7 @@
 import { BunmaskaError, InvalidArgumentError, UnsupportedPlatformError } from '../../common/errors';
 import { currentPlatform } from '../../common/platform';
 import { linuxMenuRealizer } from '../platform/linux/gtk-menu';
+import { parseAccelerator } from './accelerator';
 import type { NativeMenuItemSpec } from '../platform/macos/cocoa-menu';
 import * as cocoaMenu from '../platform/macos/cocoa-menu';
 import { windowsMenuRealizer } from '../platform/windows/windows-menu';
@@ -182,12 +183,8 @@ const isMacroRole = (role: MenuRole | MenuMacroRole): role is MenuMacroRole =>
 
 /** `'CmdOrCtrl+Q'` → `'q'`; `''` when the key is not a single character. */
 const acceleratorKey = (accelerator: string | undefined): string => {
-  if (accelerator === undefined || accelerator.length === 0) {
-    return '';
-  }
-  const parts = accelerator.split('+');
-  const key = parts[parts.length - 1] ?? '';
-  return key.length === 1 ? key.toLowerCase() : '';
+  const parsed = accelerator ? parseAccelerator(accelerator, 'macos') : undefined;
+  return parsed !== undefined && parsed.key.length === 1 ? parsed.key.toLowerCase() : '';
 };
 
 // NSEventModifierFlags bits (macOS): only the modifier portion matters here.
@@ -197,40 +194,22 @@ const NS_OPTION = 1n << 19n;
 const NS_COMMAND = 1n << 20n;
 
 /**
- * Parse the modifier portion of an accelerator into an `NSEventModifierFlags`
- * mask (macOS). `CommandOrControl` maps to Command on macOS. Returns `0n` for no
- * accelerator. Without this, AppKit assumes Command-only and multi-modifier
- * accelerators (e.g. redo's `Shift+Cmd+Z`) collapse and collide.
+ * The accelerator's modifiers as an `NSEventModifierFlags` mask. Shares the one
+ * parser in accelerator.ts, which resolves CmdOrCtrl to Command on macOS; Super
+ * also lands on Command there. Without this, AppKit assumes Command-only and
+ * multi-modifier accelerators (redo's `Shift+Cmd+Z`) collapse and collide.
  */
 const acceleratorModifierMask = (accelerator: string | undefined): bigint => {
-  if (accelerator === undefined || accelerator.length === 0) {
+  const parsed = accelerator ? parseAccelerator(accelerator, 'macos') : undefined;
+  if (parsed === undefined) {
     return 0n;
   }
-  let mask = 0n;
-  for (const raw of accelerator.split('+')) {
-    switch (raw.toLowerCase()) {
-      case 'shift':
-        mask |= NS_SHIFT;
-        break;
-      case 'control':
-      case 'ctrl':
-        mask |= NS_CONTROL;
-        break;
-      case 'alt':
-      case 'option':
-        mask |= NS_OPTION;
-        break;
-      case 'command':
-      case 'cmd':
-      case 'meta':
-      case 'super':
-      case 'commandorcontrol':
-      case 'cmdorctrl':
-        mask |= NS_COMMAND;
-        break;
-    }
-  }
-  return mask;
+  return (
+    (parsed.shift ? NS_SHIFT : 0n) |
+    (parsed.ctrl ? NS_CONTROL : 0n) |
+    (parsed.alt ? NS_OPTION : 0n) |
+    (parsed.meta || parsed.super ? NS_COMMAND : 0n)
+  );
 };
 
 export class MenuItem {
@@ -445,7 +424,7 @@ export class Menu {
     return getRealizer().realize(this.items.map(toSpec));
   }
 
-  /** `null` clears the stored menu but leaves the installed native menu bar in place. */
+  /** `null` removes the application menu everywhere, including bars already installed. */
   static setApplicationMenu(menu: Menu | null): void {
     applicationMenu = menu;
     // null must reach the native side too: it clears the menu bar (Electron

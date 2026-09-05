@@ -1,9 +1,8 @@
 import { EventEmitter } from 'node:events';
+import { selectBackend } from '../platform/index';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { UnsupportedPlatformError } from '../../common/errors';
-import { currentPlatform } from '../../common/platform';
 import { linuxTrayBackend } from '../platform/linux/sni-tray';
 import { macosTrayBackend } from '../platform/macos/cocoa-tray';
 import { windowsTrayBackend } from '../platform/windows/windows-tray';
@@ -26,10 +25,13 @@ export type TrayImage = string | NativeImage;
  * click to present the menu. `right-click`/`double-click` are deferred.
  */
 
+/** Per-image options a backend may honour; the macOS template flag today. */
+export type TrayImageOptions = { readonly template?: boolean };
+
 export type TrayInstance = {
   setToolTip(toolTip: string): void;
   setTitle(title: string): void;
-  setImage(image: string): void;
+  setImage(image: string, options?: TrayImageOptions): void;
   /** `null` clears the installed menu. */
   setContextMenu(menu: Menu | null): void;
   onClick(callback: () => void): void;
@@ -40,34 +42,24 @@ export type TrayInstance = {
 
 export type TrayBackend = {
   /** `image` is a filesystem path, never a {@link NativeImage}. */
-  create(image: string): TrayInstance;
+  create(image: string, options?: TrayImageOptions): TrayInstance;
 };
 
 const macosBackend: TrayBackend = macosTrayBackend;
 const linuxBackend: TrayBackend = linuxTrayBackend;
 
-let backend: TrayBackend | undefined;
-
-const getBackend = (): TrayBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return macosBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return linuxBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsTrayBackend;
-  }
-  throw new UnsupportedPlatformError(`Tray is not supported on ${currentPlatform()} yet`);
-};
+const { get: getBackend, setForTesting } = selectBackend<TrayBackend>('Tray', {
+  macos: () => macosBackend,
+  linux: () => linuxBackend,
+  windows: () => windowsTrayBackend,
+});
 
 /** @internal */
-export const setTrayBackendForTesting = (fake: TrayBackend | undefined): void => {
-  backend = fake;
-};
+export const setTrayBackendForTesting = setForTesting;
+
+/** A NativeImage's template flag travels with the path the backends load. */
+const imageOptions = (image: TrayImage): TrayImageOptions =>
+  typeof image === 'string' ? {} : { template: image.isTemplateImage() };
 
 export class Tray extends EventEmitter {
   #instance: TrayInstance;
@@ -77,7 +69,7 @@ export class Tray extends EventEmitter {
   /** A {@link NativeImage} is materialized to a temp PNG the backends load by path. */
   constructor(image: TrayImage) {
     super();
-    this.#instance = getBackend().create(this.#resolveImagePath(image));
+    this.#instance = getBackend().create(this.#resolveImagePath(image), imageOptions(image));
     this.#instance.onClick(() => {
       this.emit('click');
     });
@@ -114,7 +106,7 @@ export class Tray extends EventEmitter {
     if (this.#destroyed) {
       return;
     }
-    this.#instance.setImage(this.#resolveImagePath(image));
+    this.#instance.setImage(this.#resolveImagePath(image), imageOptions(image));
   }
 
   /** `null` clears it. Shown on click. No-op after destroy. */

@@ -234,7 +234,8 @@ export type DevTimers = {
 };
 
 export type DevDeps = {
-  readonly spawn: (entry: string) => DevChild;
+  /** `restart` is true for every spawn after the first. */
+  readonly spawn: (entry: string, opts?: { readonly restart?: boolean }) => DevChild;
   readonly watch: (dir: string, onChange: (relPath: string) => void) => DevWatcher;
   readonly timers: DevTimers;
   readonly log: (message: string) => void;
@@ -334,7 +335,7 @@ export class DevSupervisor {
       if (this.#stopped) {
         return;
       }
-      this.#child = this.#track(this.#deps.spawn(this.#entry));
+      this.#child = this.#track(this.#deps.spawn(this.#entry, { restart: true }));
       this.starts += 1;
       this.#deps.log(`restarted (${this.#entry})`);
     } finally {
@@ -380,9 +381,11 @@ export const defaultDevDeps = (
   log: (message: string) => void,
   extraEnv: Readonly<Record<string, string>> = {},
 ): DevDeps => ({
-  spawn: (entry) => {
+  spawn: (entry, opts) => {
     // `BUNMASKA_DEV` switches on the app's stdin reload listener; a piped stdin is
-    // how the supervisor delivers reload requests to it.
+    // how the supervisor delivers reload requests to it. `BUNMASKA_DEV_RESTART`
+    // tells a respawned app to show its window without taking focus from the
+    // editor the developer is typing in.
     const proc = Bun.spawn(['bun', 'run', entry], {
       cwd,
       env: {
@@ -391,6 +394,7 @@ export const defaultDevDeps = (
         BUNMASKA_DEV: '1',
         // Dot-named so the watcher never classifies the state file itself.
         BUNMASKA_DEV_STATE: resolve(cwd, '.bunmaska-dev-state.json'),
+        ...(opts?.restart ? { BUNMASKA_DEV_RESTART: '1' } : {}),
       },
       stdin: 'pipe',
       stdout: 'inherit',

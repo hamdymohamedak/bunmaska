@@ -39,7 +39,7 @@ Custom properties inherit, so set `--app-region: drag` on the bar and `--app-reg
 
 ## Window controls
 
-A built-in API is injected into every page - no `ipcMain` handler to write:
+A built-in API is injected into every page - no `ipcMain` handler to write. Today it is injected on Windows only; macOS and Linux get the `--app-region` mirror (macOS drags natively off it), with the control handlers wired next:
 
 ```js
 window.__bunmaska.window.minimize();

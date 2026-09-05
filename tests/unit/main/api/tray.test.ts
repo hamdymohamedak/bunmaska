@@ -2,11 +2,12 @@ import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { Menu } from '../../../../src/main/api/menu';
 import {
+  setTrayBackendForTesting,
   Tray,
   type TrayBackend,
   type TrayImage,
+  type TrayImageOptions,
   type TrayInstance,
-  setTrayBackendForTesting,
 } from '../../../../src/main/api/tray';
 
 type FakeInstance = TrayInstance & {
@@ -53,12 +54,16 @@ const makeInstance = (image: string): FakeInstance => {
   return instance;
 };
 
+let createOptions: (TrayImageOptions | undefined)[] = [];
+
 beforeEach(() => {
   created = [];
+  createOptions = [];
   const fake: TrayBackend = {
-    create: (image) => {
+    create: (image, options) => {
       const instance = makeInstance(image);
       created.push(instance);
+      createOptions.push(options);
       return instance;
     },
   };
@@ -87,12 +92,21 @@ describe('Tray construction', () => {
   test('accepts a NativeImage by materializing its PNG to a temp file (Electron parity)', async () => {
     const { readFileSync } = await import('node:fs');
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
-    const fakeImage = { toPNG: () => png } as unknown as TrayImage;
+    const fakeImage = { toPNG: () => png, isTemplateImage: () => false } as unknown as TrayImage;
     new Tray(fakeImage);
     const path = created[0]?.image ?? '';
     expect(path.endsWith('icon.png')).toBe(true);
     expect(path).not.toBe('[object Object]');
     expect(Array.from(readFileSync(path))).toEqual(Array.from(png));
+  });
+
+  test('carries a NativeImage template flag to the backend', () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const fakeImage = { toPNG: () => png, isTemplateImage: () => true } as unknown as TrayImage;
+    new Tray(fakeImage);
+    expect(createOptions[0]).toEqual({ template: true });
+    new Tray('/tmp/icon.png');
+    expect(createOptions[1]).toEqual({});
   });
 });
 

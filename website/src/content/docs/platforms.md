@@ -1,11 +1,11 @@
 ---
 title: Platform Support
-description: "Which WebKit bunmaska uses on each OS: WKWebView on macOS, WebKitGTK on Linux, from-source WinCairo on Windows (x64, beta). Never Chromium."
+description: "Which WebKit bunmaska uses on each OS: WKWebView on macOS, WebKitGTK on Linux, from-source WinCairo on Windows, in beta (x64). Never Chromium."
 seoTitle: "Platform support - macOS, Linux, Windows (x64)"
 order: 4
 ---
 
-Bunmaska ships on **macOS, Linux, and now Windows** - each driving the operating system's own WebKit in pure `bun:ffi`. macOS and Linux use the WebKit that's already on the machine; Windows has none, so it loads a **WinCairo WebKit we build from source and bundle**. Support isn't identical across the three, and we publish exactly where it differs (see the [parity matrix](/docs/migrating/parity)). The honest summary:
+Bunmaska ships on **macOS, Linux, and now Windows** (in beta (x64)) - each driving the operating system's own WebKit in pure `bun:ffi`. macOS and Linux use the WebKit that's already on the machine; Windows has none, so it loads a **WinCairo WebKit we build from source and bundle**. Support isn't identical across the three, and we publish exactly where it differs (see the [parity matrix](/docs/migrating/parity)). The honest summary:
 
 ## The support matrix
 
@@ -33,7 +33,7 @@ A from-scratch Win32 backend on pure `bun:ffi` - native windows + a cooperative 
 
 - **Architectures:** `x64` today. Upstream WinCairo is x64-only, so **ARM64 is on the roadmap**, not shipping. 32-bit (x86) is not supported, on purpose.
 - **Engine:** Windows ships no system WebKit, so an app loads a **WinCairo `WebKit2.dll`** - built from WebKit source by us (a clang-cl from-source build, proven end-to-end) and bundled with the app, or resolved from the engine store. The engine directory is placed on the DLL search path so its dependency closure (ICU, libcurl, ANGLE, …) resolves beside it.
-- **The distribution piece:** you can ship a Windows app **today** by building the engine and embedding it (`bunmaska build --embed-engine <dir>`, or point `BUNMASKA_WEBKIT_PATH` at a build). What's still coming is a **hosted prebuilt engine** so you don't have to build it yourself - the publish step that makes it turnkey.
+- **The distribution piece:** you can ship a Windows app **today** by building the engine and embedding it (`bunmaska build --embed-engine <dir>`, or point `BUNMASKA_WEBKIT_PATH` at a build). A hosted WinCairo engine is on the feed today; the stable-train build and ARM64 are next.
 - **Engine-blocked gaps:** `printToPDF`, `capturePage`, and custom `protocol://` schemes can't be served on Windows - the WinCairo WebKit2 C API simply doesn't expose those entry points (confirmed against the DLL's exports). They throw a clear error rather than silently no-op. DevTools, the tray context menu, and a fully isolated content world are follow-ups. Full picture on the [parity matrix](/docs/migrating/parity).
 
 ## Requirements (all platforms)

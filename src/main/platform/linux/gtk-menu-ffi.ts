@@ -91,6 +91,11 @@ export const GTK_MENU_FFI_SYMBOLS = {
     args: [FFIType.pointer, FFIType.pointer],
     returns: FFIType.void,
   },
+  // (GtkBox*, GtkWidget* child) -> void
+  gtk_box_remove: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.void,
+  },
   // (model /*GMenuModel*/) -> GtkPopoverMenuBar* (a GtkWidget)
   gtk_popover_menu_bar_new_from_model: {
     args: [FFIType.pointer],

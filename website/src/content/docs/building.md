@@ -25,7 +25,7 @@ bunmaska build --dmg           # > MyApp.app + MyApp.dmg
 
 You get:
 
-- **`.app` bundle** - with a `.icns` icon converted from your PNG.
+- **`.app` bundle** - named from `--name`, else `name` in `bunmaska.config.ts`, else the entry file's stem - with a `.icns` icon converted from your PNG.
 - **`.dmg`** - the drag-to-Applications disk image.
 - **Code signing & notarization** (optional but recommended for distribution):
 
@@ -37,7 +37,7 @@ BUNMASKA_NOTARIZE_PASSWORD="app-specific-password" \
 bunmaska build --sign "Developer ID Application: Your Name (TEAMID)" --notarize
 ```
 
-`--notarize` zips the signed `.app`, submits it via `xcrun notarytool --wait`, and staples the ticket. If the three env vars above are missing it is skipped with a message telling you which ones to set, rather than failing the build. A signed + notarized app passes macOS Gatekeeper without a warning. (Requires an Apple Developer account - $99/yr, one account, unlimited apps.)
+`--notarize` requires `--sign`. It zips the signed `.app`, submits it via `xcrun notarytool --wait`, and staples the ticket. If the three env vars above are missing it is skipped with a message telling you which ones to set, rather than failing the build. A signed + notarized app passes macOS Gatekeeper without a warning. (Requires an Apple Developer account - $99/yr, one account, unlimited apps.)
 
 ### Architectures
 
@@ -46,23 +46,27 @@ Build on the architecture you're targeting: an **Apple Silicon** Mac produces `a
 ## Linux
 
 ```sh
-bunmaska build                 # > AppDir (.tar.gz) + MyApp.deb
+bunmaska build                 # > <Name>-linux-<arch>.tar.gz + <slug>_<version>_<arch>.deb
 ```
 
 You get:
 
-- **AppDir `.tar.gz`** - a relocatable directory bundle.
-- **`.deb`** - for Debian/Ubuntu and derivatives (the `ar` archive is assembled in pure JS - no `dpkg` toolchain required to produce it).
+- **`<Name>-linux-<arch>.tar.gz`** - a relocatable AppDir bundle.
+- **`<slug>_<app-version>_<arch>.deb`** - the app version comes from your project's `package.json` (`0.0.0` if absent); for Debian/Ubuntu and derivatives (the `ar` archive is assembled in pure JS - no `dpkg` toolchain required to produce it).
 
-> The generated `.deb` declares `libwebkitgtk-6.0` as a dependency, so a user's `apt install` pulls the engine in automatically - you don't ship it, and they don't hunt for it. Bunmaska never bundles a browser.
+> The generated `.deb` depends on exactly `libwebkitgtk-6.0-4` and `libgtk-4-1`, so a user's `apt install` pulls the engine in automatically - you don't ship it, and they don't hunt for it. Bunmaska never bundles a browser.
 
 ### Architectures
 
-Build on the target architecture: an `x64` box produces `x64`, an **ARM64** box (including a **Raspberry Pi**) produces `arm64`. The same command, no cross-compile gymnastics.
+The build targets the host architecture: an `x64` box produces `x64`, an **ARM64** box (including a **Raspberry Pi**) produces `arm64`. The same command, no cross-compile gymnastics.
 
 ## Windows
 
-`bunmaska build --target windows` compiles a self-contained `.exe` and packages it as a `.zip` (x64). Because Windows ships no system WebKit, the app needs a **WinCairo `WebKit2.dll`** - today you build that from WebKit source and embed it (`--embed-engine`, or point `BUNMASKA_WEBKIT_PATH` at a build). A hosted prebuilt engine - so you don't have to build it yourself - is the next step. See [Platform Support](/docs/platforms) and the [roadmap](/roadmap).
+`bunmaska build --target windows` compiles a self-contained `.exe` into a portable `<Name>/` directory and zips it (x64). Because Windows ships no system WebKit, the app needs a **WinCairo `WebKit2.dll`** - install the hosted one from the feed (`bunmaska engine install <id>`) and pin it, embed a build (`--embed-engine <dir>`), or point `BUNMASKA_WEBKIT_PATH` at one. The stable-train build and ARM64 are next. See [Platform Support](/docs/platforms) and the [roadmap](/roadmap).
+
+## The engine pin
+
+`engine.webkit` in `bunmaska.config.ts` is baked into Linux and Windows bundles, so the app resolves that engine at launch. On macOS it is **not** baked - macOS always runs the system WKWebView today; pinning there is on the [roadmap](/roadmap). A bare upstream version like `2.52.4` is not resolved yet: `build` bakes `system` and warns, so pin a full engine id (see [Pinned WebKit Engine](/docs/concepts/engine)).
 
 ## Bundling your renderer
 
@@ -114,7 +118,7 @@ This writes `update-signing-key.pem` (private - signs releases, never ships in t
 bunmaska build --update --update-key update-signing-key.pem --channel stable
 ```
 
-This writes a content-hashed `<name>-<channel>-<os>-<arch>.tar.zst`, an `update.json` manifest, and a detached `.sig` alongside your build. Skipping `--update-key` prints a loud warning and produces an unsigned feed **the runtime autoUpdater will refuse** - fine for a smoke test, useless for shipping. Because there's no 150 MB engine inside, update payloads are tiny: users download your code, not a browser.
+This writes a content-hashed `<name>-<channel>-<os>-<arch>.tar.zst`, an `update.json` manifest (its version is read from your project's `package.json`), and a detached `.sig` alongside your build. Skipping `--update-key` prints a loud warning and produces an unsigned feed **the runtime autoUpdater will refuse** - fine for a smoke test, useless for shipping. Because there's no 150 MB engine inside, update payloads are tiny: users download your code, not a browser.
 
 **3. Host the three files** (`update.json`, the `.tar.zst`, the `.sig`) in one https directory - any static host or object store works.
 

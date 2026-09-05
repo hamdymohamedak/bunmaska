@@ -88,6 +88,15 @@ type CurrentAppMenu = {
 
 let currentAppMenu: CurrentAppMenu | undefined;
 
+/** Windows with a live bar register here so `setApplicationMenu(null)` can tear it down. */
+const clearListeners = new Set<() => void>();
+export const onAppMenuCleared = (listener: () => void): (() => void) => {
+  clearListeners.add(listener);
+  return () => {
+    clearListeners.delete(listener);
+  };
+};
+
 let injectedBindings: Bindings | undefined;
 
 /** The real GIO/GObject-backed bindings (constructed lazily on Linux). */
@@ -260,9 +269,13 @@ export const realizeForWindow = (
 /** Install `menuHandle` as the current application menu (applied to future windows). */
 const setApplicationMenu = (menuHandle: bigint | null): void => {
   if (menuHandle === null) {
-    // Windows created after this get no menu bar (live bars are not torn down;
-    // the Linux bar is attached at window construction only).
     currentAppMenu = undefined;
+    // Live bars come down too; a later setApplicationMenu(menu) still only
+    // applies to windows created after it.
+    for (const listener of [...clearListeners]) {
+      listener();
+    }
+    clearListeners.clear();
     return;
   }
   const entry = menuEntries.get(menuHandle);

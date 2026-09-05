@@ -1,5 +1,4 @@
-import { UnsupportedPlatformError } from '../../common/errors';
-import { currentPlatform } from '../../common/platform';
+import { selectBackend } from '../platform/index';
 import { linuxDialogBackend } from '../platform/linux/gtk-dialog';
 import * as cocoaDialog from '../platform/macos/cocoa-dialog';
 import { windowsDialogBackend } from '../platform/windows/windows-dialog';
@@ -89,28 +88,14 @@ const macosBackend: DialogBackend = {
   showSaveDialog: (spec) => cocoaDialog.showSaveDialog(spec),
 };
 
-let backend: DialogBackend | undefined;
-
-const getBackend = (): DialogBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return macosBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return linuxDialogBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsDialogBackend;
-  }
-  throw new UnsupportedPlatformError(`dialog is not supported on ${currentPlatform()} yet`);
-};
+const { get: getBackend, setForTesting } = selectBackend<DialogBackend>('dialog', {
+  macos: () => macosBackend,
+  linux: () => linuxDialogBackend,
+  windows: () => windowsDialogBackend,
+});
 
 /** @internal */
-export const setDialogBackendForTesting = (fake: DialogBackend | undefined): void => {
-  backend = fake;
-};
+export const setDialogBackendForTesting = setForTesting;
 
 export type Dialog = {
   showMessageBox(options: MessageBoxOptions): Promise<MessageBoxReturnValue>;

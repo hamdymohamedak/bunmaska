@@ -146,13 +146,7 @@ export const drainStreamBytesAsync = async (reader: AsyncStreamReader): Promise<
   } finally {
     reader.close();
   }
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return out;
+  return Buffer.concat(chunks, total);
 };
 
 /**

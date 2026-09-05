@@ -11,8 +11,12 @@ export {
   type UpdateCheckResult,
   type UpdateInfo,
 } from './api/auto-updater';
-export { BrowserWindow, type BrowserWindowOptions } from './api/browser-window';
-export { WebContents } from './api/web-contents';
+export {
+  BrowserWindow,
+  type BrowserWindowOptions,
+  type WebPreferences,
+} from './api/browser-window';
+export { type LoadFileOptions, WebContents } from './api/web-contents';
 export { ipcMain } from './api/ipc-main';
 export { clipboard, type Clipboard } from './api/clipboard';
 export {
@@ -28,6 +32,7 @@ export {
   MenuItem,
   type MenuItemOptions,
   type MenuItemType,
+  type MenuPopupOptions,
 } from './api/menu';
 export {
   type DecodedImage,
@@ -41,6 +46,7 @@ export { Notification, type NotificationOptions } from './api/notification';
 export { type PowerMonitor, powerMonitor } from './api/power-monitor';
 export { type PowerSaveBlocker, powerSaveBlocker } from './api/power-save-blocker';
 export {
+  DEFAULT_MIME_TYPE,
   type ProtocolHandler,
   type ProtocolRequest,
   type ProtocolResponse,
@@ -51,7 +57,8 @@ export { type Display, type Point, screen, type Size } from './api/screen';
 export type { Cookie, CookieFilter, CookieSetDetails } from './api/cookie-util';
 export { Cookies, Session, session } from './api/session';
 export { shell, type Shell } from './api/shell';
-export { Tray, type TrayBackend, type TrayInstance } from './api/tray';
+export { Tray, type TrayBackend, type TrayImageOptions, type TrayInstance } from './api/tray';
+export type { KeyboardInputEvent, MouseInputEvent, NativeInputEvent } from './platform/native';
 export {
   FFIError,
   InvalidArgumentError,

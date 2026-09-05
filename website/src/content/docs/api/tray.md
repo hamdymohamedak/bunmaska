@@ -34,7 +34,7 @@ app.whenReady().then(() => {
 
 - `image` string | [NativeImage](native-image.md) - a filesystem path, or a NativeImage.
 
-Creates a status item and shows the icon immediately. `image` is a filesystem path or a `NativeImage` (a NativeImage is written to a temp PNG the native backends load by path); there is no `guid` parameter. A bad or unreadable path does not crash; the icon is simply not set. On macOS, pass a [Template Image](native-image.md) (a filename ending in `Template`) so the menu bar can invert it for light/dark mode.
+Creates a status item and shows the icon immediately. `image` is a filesystem path or a `NativeImage` (a NativeImage is written to a temp PNG the native backends load by path); there is no `guid` parameter. A bad or unreadable path does not crash; the icon is simply not set. On macOS, pass a `NativeImage` with `setTemplateImage(true)` - when `isTemplateImage()` is true it is applied as a [template image](native-image.md), so the menu bar inverts it for light/dark mode. A path ending in `Template` is not special-cased; use the NativeImage flag.
 
 ```ts
 import { Tray } from 'bunmaska';

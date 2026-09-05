@@ -1,4 +1,5 @@
 import { type Pointer, ptr } from 'bun:ffi';
+import { isDevRestart } from '../../dev-reload';
 import { UnsupportedPlatformError } from '../../../common/errors';
 import {
   generateChannelId,
@@ -22,7 +23,7 @@ import type {
 import { windowControlsScript } from '../window-controls';
 import { ExecResultChannel } from './eval-js';
 import { loadGtkFFI } from './gtk-ffi';
-import { getCurrentAppMenu, getMenuEntry, realizeForWindow } from './gtk-menu';
+import { getCurrentAppMenu, getMenuEntry, realizeForWindow, onAppMenuCleared } from './gtk-menu';
 import { loadGtkMenuFFI } from './gtk-menu-ffi';
 import { createLinuxDrain } from './gtk-run-loop';
 import {
@@ -397,8 +398,14 @@ class LinuxWindow implements NativeWindow {
       const model = Number(entry.model) as unknown as Pointer;
       const group = Number(entry.group) as unknown as Pointer;
       const box = menu.symbols.gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-      menu.symbols.gtk_box_append(box, menu.symbols.gtk_popover_menu_bar_new_from_model(model));
+      const bar = menu.symbols.gtk_popover_menu_bar_new_from_model(model);
+      menu.symbols.gtk_box_append(box, bar);
       menu.symbols.gtk_box_append(box, view);
+      onAppMenuCleared(() => {
+        if (!this.#closed) {
+          menu.symbols.gtk_box_remove(box, bar);
+        }
+      });
       menu.symbols.gtk_widget_insert_action_group(this.#window, cstr('bunmaska'), group);
       gtk.symbols.gtk_window_set_child(this.#window, box);
     }
@@ -570,7 +577,10 @@ class LinuxWindow implements NativeWindow {
   show(): void {
     const gtk = loadGtkFFI();
     gtk.symbols.gtk_widget_set_visible(this.#window, GTK_TRUE);
-    gtk.symbols.gtk_window_present(this.#window);
+    // `present` requests focus; a dev respawn leaves the editor focused.
+    if (!isDevRestart()) {
+      gtk.symbols.gtk_window_present(this.#window);
+    }
     this.#visible = true;
     this.#minimized = false;
     this.#emitEvent('show');

@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { join, posix } from 'node:path';
 import { BUNMASKA_VERSION } from '../common/version';
 import { bundlePreloadAssets, copyAppAssets } from './app-assets';
+import { runTool } from './run-tool';
 
 const MINIMUM_SYSTEM_VERSION = '11.0';
 
@@ -256,16 +257,6 @@ export const buildHdiutilArgs = (opts: HdiutilOptions): string[] => [
   opts.outDmg,
 ];
 
-/** Spawn a build tool and throw (with its stderr) on a non-zero exit. */
-export const runTool = async (label: string, argv: string[]): Promise<void> => {
-  const proc = Bun.spawn(argv, { stdout: 'pipe', stderr: 'pipe' });
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`${label} failed (exit ${exitCode}):\n${stderr}`);
-  }
-};
-
 export const convertPngToIcns = async (pngPath: string, outIcns: string): Promise<void> => {
   const work = mkdtempSync(join(tmpdir(), 'bunmaska-iconset-'));
   // iconutil only accepts a directory whose name ends in `.iconset`.
@@ -313,28 +304,11 @@ export const codesignApp = async (identity: string, appPath: string): Promise<vo
   writeFileSync(entitlementsPath, codesignEntitlements());
 
   try {
-    const sign = Bun.spawn(
-      ['codesign', ...buildCodesignArgs(identity, appPath, entitlementsPath)],
-      {
-        stdout: 'pipe',
-        stderr: 'pipe',
-      },
-    );
-    const signExit = await sign.exited;
-    if (signExit !== 0) {
-      const stderr = await new Response(sign.stderr).text();
-      throw new Error(`codesign failed (exit ${signExit}):\n${stderr}`);
-    }
-
-    const verify = Bun.spawn(['codesign', ...buildCodesignVerifyArgs(appPath)], {
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-    const verifyExit = await verify.exited;
-    if (verifyExit !== 0) {
-      const stderr = await new Response(verify.stderr).text();
-      throw new Error(`codesign --verify failed (exit ${verifyExit}):\n${stderr}`);
-    }
+    await runTool('codesign', [
+      'codesign',
+      ...buildCodesignArgs(identity, appPath, entitlementsPath),
+    ]);
+    await runTool('codesign --verify', ['codesign', ...buildCodesignVerifyArgs(appPath)]);
   } finally {
     rmSync(entitlementsDir, { recursive: true, force: true });
   }
@@ -360,17 +334,8 @@ export type BuildMacAppOptions = {
   readonly buildDmg?: BuildDmg;
 };
 
-const compileBinary = async (entry: string, outfile: string): Promise<void> => {
-  const proc = Bun.spawn(['bun', 'build', entry, '--compile', '--outfile', outfile], {
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`bun build --compile failed (exit ${exitCode}):\n${stderr}`);
-  }
-};
+const compileBinary = (entry: string, outfile: string): Promise<void> =>
+  runTool('bun build --compile', ['bun', 'build', entry, '--compile', '--outfile', outfile]);
 
 export const buildMacApp = async (opts: BuildMacAppOptions): Promise<string> => {
   const out = opts.out ?? process.cwd();

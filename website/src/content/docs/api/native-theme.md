@@ -1,10 +1,10 @@
 ---
 title: "nativeTheme"
-description: "Read and respond to the OS dark/light appearance, with a themeSource override. Main process only; macOS, Linux, and Windows (Windows is read-only)."
+description: "Read and respond to the OS dark/light appearance, with a themeSource override. Main process only; macOS, Linux, and Windows (macOS and Linux observe live changes; only macOS re-themes natively)."
 order: 14
 ---
 
-Read and respond to changes in the operating system's native color theme. Bunmaska's `nativeTheme` is a main-process singleton that reports whether a dark appearance should be used, lets you force light/dark via `themeSource`, and emits `updated` when the OS appearance flips underneath your app. It reads the real OS setting on every platform - macOS `AppleInterfaceStyle`, Linux `GtkSettings` (`gtk-application-prefer-dark-theme`), and Windows the `AppsUseLightTheme` registry value. **Windows is read-only**: `shouldUseDarkColors` reflects the registry, but the `themeSource` override and live `updated` observation are not yet wired there (live `updated` is a follow-up; the override works on macOS).
+Read and respond to changes in the operating system's native color theme. Bunmaska's `nativeTheme` is a main-process singleton that reports whether a dark appearance should be used, lets you force light/dark via `themeSource`, and emits `updated` when the OS appearance flips underneath your app. It reads the real OS setting on every platform - macOS `AppleInterfaceStyle`, Linux `GtkSettings` (`gtk-application-prefer-dark-theme`), and Windows the `AppsUseLightTheme` registry value. `themeSource` is honoured on all three at the TypeScript level - `shouldUseDarkColors` follows it and `updated` fires - but only macOS re-themes natively. macOS and Linux observe live OS changes; Windows does not yet.
 
 Process: Main. There is no renderer-side `nativeTheme`; query it from main and forward what you need over IPC (the `prefers-color-scheme` CSS media query works in the page regardless).
 
@@ -18,7 +18,7 @@ import { nativeTheme } from 'bunmaska';
 
 Emitted when the underlying native theme changes. In practice this means the value of `shouldUseDarkColors` may have changed - either because the OS appearance flipped, or because you assigned a new `themeSource`. Read the properties you care about to find out what changed.
 
-Note that the OS-driven half of this event only fires once startup has wired the appearance observer (the Bunmaska bootstrap does this for you). The assignment-driven half (`themeSource = ...`) always emits.
+Note that the OS-driven half of this event fires on macOS and Linux, once startup has wired the appearance observer (the Bunmaska bootstrap does this for you); Windows does not observe live OS changes yet. The assignment-driven half (`themeSource = ...`) always emits, on every platform.
 
 ```ts
 import { nativeTheme } from 'bunmaska';
@@ -49,7 +49,7 @@ A `string` property - one of `'system'`, `'light'`, or `'dark'` - that overrides
 - `'dark'` makes `shouldUseDarkColors` return `true` and the `prefers-color-scheme` CSS query match `dark`.
 - `'light'` makes `shouldUseDarkColors` return `false` and the CSS query match `light`.
 
-Assigning this property always emits the `updated` event. On macOS it also applies an app-wide `NSAppearance` (`NSAppearanceNameDarkAqua` / `NSAppearanceNameAqua`), so native chrome and web views re-theme to match. _On Linux the override changes what `shouldUseDarkColors` and the `updated` event report, but it does not currently push an app-wide appearance to the toolkit_ - so wire your renderer's theme off `shouldUseDarkColors` (as you should anyway) rather than assuming GTK widgets will follow. _On Windows the override is not yet wired_ - `shouldUseDarkColors` is read-only from the `AppsUseLightTheme` registry value, so assigning `themeSource` there does not change what is reported.
+Assigning this property always emits the `updated` event. On macOS it also applies an app-wide `NSAppearance` (`NSAppearanceNameDarkAqua` / `NSAppearanceNameAqua`), so native chrome and web views re-theme to match. _On Linux and Windows the override changes what `shouldUseDarkColors` and the `updated` event report, but it does not push an app-wide appearance to the toolkit_ - so wire your renderer's theme off `shouldUseDarkColors` (as you should anyway) rather than assuming native widgets will follow.
 
 The intended state machine is the classic three-way dark-mode toggle:
 

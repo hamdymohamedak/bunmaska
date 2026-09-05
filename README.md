@@ -81,9 +81,11 @@ The CLI is *your* dev tool - it never ships inside your app. macOS and Linux run
 
 | Command | What it does |
 |---|---|
-| `bunmaska init [dir]` | Scaffold a runnable starter project. |
+| `bunmaska init [name] [dir]` | Scaffold a runnable starter project (`init my-app`, `init .`, `init my-app .`). |
 | `bunmaska dev` | Run the app with file-watch restarts + renderer live-reload. |
+| `bunmaska run <entry> [args...]` | Run an entry file once, no watching; trailing args are forwarded. |
 | `bunmaska build` | Package a distributable for the current OS (`--target` cross-builds). |
+| `bunmaska keygen` | Generate the Ed25519 key pair that signs the auto-update feed. |
 | `bunmaska engine <cmd>` | Manage the pinned-WebKit engine store (`list` / `which` / `install`). |
 | `bunmaska doctor` | Report the runtime, store, and the WebKit your project resolves to. |
 

@@ -24,7 +24,8 @@ console.log(canceled, filePaths);
 ### `dialog.showOpenDialog([options])`
 
 * `options` Object (optional)
-  * `properties` string[] (optional) - Defaults to `['openFile']`. Supported values: `openFile`, `openDirectory`, `multiSelections`.
+  * `properties` string[] (optional) - Defaults to `['openFile']`. Supported values: `openFile`, `openDirectory`, `multiSelections`, and `createDirectory` (macOS). Linux ignores `openDirectory` and `multiSelections`; Windows honours `openDirectory` only when `openFile` is not also set.
+  * `defaultPath` string (optional) - The directory or file the panel opens on. Honoured on macOS.
   * `filters` [FileFilter[]](#filefilter) (optional) - File-type filters; the selectable extensions are the union of every filter's `extensions`.
 
 Returns `Promise<Object>`:
@@ -138,6 +139,5 @@ The following Electron `dialog` members are not implemented in the Bunmaska sour
 - **The `window` (parent) argument** - no method accepts a `BrowserWindow`/`BaseWindow`, so dialogs are not attached as macOS sheets or made window-modal; they appear as independent panels. The whole "Sheets" and `setSheetOffset` story does not apply.
 - **macOS security-scoped bookmarks** - no `securityScopedBookmarks` option and no `bookmarks`/`bookmark` fields in the results.
 - **Most option fields** - `title`, `buttonLabel`, `message`/`detail` on file dialogs, `nameFieldLabel`, `showsTagField`, `defaultId`, `cancelId`, `signal` (AbortSignal), `icon`, `textWidth`, `checkboxLabel`/`checkboxChecked`, `noLink`, and `normalizeAccessKeys` are all unsupported. `showMessageBox` resolves with only `{ response }` - there is no `checkboxChecked` in the result.
-- **Open-dialog `properties` beyond the basics** - only `openFile`, `openDirectory`, and `multiSelections` are honored. `showHiddenFiles`, `createDirectory`, `promptToCreate`, `noResolveAliases`, `treatPackageAsDirectory`, and `dontAddToRecent` are not.
-- **`defaultPath` on `showOpenDialog`** - only `showSaveDialog` reads `defaultPath` (as a suggested name); the open dialog ignores it entirely.
+- **Open-dialog `properties` beyond the basics** - only `openFile`, `openDirectory`, `multiSelections`, and `createDirectory` (macOS) are honored. `showHiddenFiles`, `promptToCreate`, `noResolveAliases`, `treatPackageAsDirectory`, and `dontAddToRecent` are not.
 - **Per-filter file-type dropdown** - filters are merged into one flat extension list rather than presented as selectable groups.

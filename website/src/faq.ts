@@ -34,14 +34,14 @@ export const faq: readonly FaqItem[] = [
   },
 ];
 
-// The home page renders these four (TradeOffs.astro) — a tighter, wittier set
+// The home page renders these four (TradeOffs.astro) - a tighter, wittier set
 // than the full /alternatives FAQ. Kept here so the visible cards and the home
 // FAQPage JSON-LD come from ONE source (Google requires the markup to match what
 // the visitor sees, or the rich result is dropped).
 export const homeFaq: readonly FaqItem[] = [
   {
     q: 'Windows?',
-    a: 'It ships (x64) - on a from-source WinCairo WebKit build (never Chromium), green on CI alongside macOS and Linux. A few APIs are engine-blocked there (custom protocols, printToPDF, capturePage); ARM64 and a hosted prebuilt engine are still on the roadmap. The parity matrix is honest about every cell.',
+    a: 'In beta (x64) - on a from-source WinCairo WebKit build (never Chromium), green on CI alongside macOS and Linux. A few APIs are engine-blocked there (custom protocols, printToPDF, capturePage); a hosted WinCairo engine is on the feed, and the stable-train build and ARM64 are still on the roadmap. The parity matrix is honest about every cell.',
   },
   {
     q: 'Production-ready?',

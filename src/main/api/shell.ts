@@ -1,5 +1,4 @@
-import { UnsupportedPlatformError } from '../../common/errors';
-import { currentPlatform } from '../../common/platform';
+import { selectBackend } from '../platform/index';
 import * as gtkShell from '../platform/linux/gtk-shell';
 import * as cocoaShell from '../platform/macos/cocoa-shell';
 import { windowsShellBackend } from '../platform/windows/windows-shell';
@@ -30,28 +29,14 @@ const linuxBackend: ShellBackend = {
   beep: () => gtkShell.beep(),
 };
 
-let backend: ShellBackend | undefined;
-
-const getBackend = (): ShellBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return macosBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return linuxBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsShellBackend;
-  }
-  throw new UnsupportedPlatformError(`shell is not supported on ${currentPlatform()} yet`);
-};
+const { get: getBackend, setForTesting } = selectBackend<ShellBackend>('shell', {
+  macos: () => macosBackend,
+  linux: () => linuxBackend,
+  windows: () => windowsShellBackend,
+});
 
 /** @internal */
-export const setShellBackendForTesting = (fake: ShellBackend | undefined): void => {
-  backend = fake;
-};
+export const setShellBackendForTesting = setForTesting;
 
 export type Shell = {
   /** Resolves with whether the launch succeeded. */

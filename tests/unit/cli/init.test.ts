@@ -121,6 +121,25 @@ describe('scaffoldProject', () => {
   });
 });
 
+describe('runInit with an explicit name', () => {
+  test('uses the given name instead of the directory name', () => {
+    const written: string[] = [];
+    const deps = {
+      exists: () => false,
+      mkdir: () => undefined,
+      writeFile: (path: string, contents: string) => {
+        written.push(path);
+        if (path.endsWith('package.json')) {
+          expect(JSON.parse(contents).name).toBe('my-app');
+        }
+      },
+    };
+    const result = runInit('/tmp/some-dir', deps, 'my-app');
+    expect(result.name).toBe('my-app');
+    expect(written.length).toBeGreaterThan(0);
+  });
+});
+
 describe('deriveProjectName', () => {
   test('uses the directory base name', () => {
     expect(deriveProjectName('/tmp/cool-app')).toBe('cool-app');

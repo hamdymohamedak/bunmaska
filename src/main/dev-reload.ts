@@ -7,6 +7,13 @@
 /** The dev command the supervisor writes for a renderer-only change. */
 export const DEV_RELOAD_COMMAND = 'reload';
 
+/**
+ * True inside an app the dev supervisor respawned after a source change. The
+ * backends then show the window without activating the app, so a restart
+ * never yanks focus away from the editor.
+ */
+export const isDevRestart = (): boolean => process.env['BUNMASKA_DEV_RESTART'] === '1';
+
 /** Split a stdin chunk into the trimmed, non-empty commands it carries. */
 export const parseDevCommands = (chunk: string): string[] =>
   chunk

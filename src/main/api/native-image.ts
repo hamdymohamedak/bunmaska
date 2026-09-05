@@ -1,5 +1,4 @@
-import { UnsupportedPlatformError } from '../../common/errors';
-import { currentPlatform } from '../../common/platform';
+import { selectBackend } from '../platform/index';
 import { gdkNativeImageBackend } from '../platform/linux/gdk-native-image';
 import { cocoaNativeImageBackend } from '../platform/macos/cocoa-native-image';
 import { windowsNativeImageBackend } from '../platform/windows/windows-native-image';
@@ -199,28 +198,14 @@ export class NativeImage {
   }
 }
 
-let backend: NativeImageBackend | undefined;
-
-const getBackend = (): NativeImageBackend => {
-  if (backend !== undefined) {
-    return backend;
-  }
-  if (currentPlatform() === 'macos') {
-    return cocoaNativeImageBackend;
-  }
-  if (currentPlatform() === 'linux') {
-    return gdkNativeImageBackend;
-  }
-  if (currentPlatform() === 'windows') {
-    return windowsNativeImageBackend;
-  }
-  throw new UnsupportedPlatformError(`nativeImage is not supported on ${currentPlatform()} yet`);
-};
+const { get: getBackend, setForTesting } = selectBackend<NativeImageBackend>('nativeImage', {
+  macos: () => cocoaNativeImageBackend,
+  linux: () => gdkNativeImageBackend,
+  windows: () => windowsNativeImageBackend,
+});
 
 /** @internal */
-export const setNativeImageBackendForTesting = (fake: NativeImageBackend | undefined): void => {
-  backend = fake;
-};
+export const setNativeImageBackendForTesting = setForTesting;
 
 const EMPTY_DECODE: DecodedImage = { handle: 0n, width: 0, height: 0, empty: true };
 

@@ -12,7 +12,7 @@ The observers attach once at startup. You import the singleton and listen - no c
 
 ## Events
 
-The `powerMonitor` module emits the following events. All four are wired on macOS, Linux, and Windows.
+The `powerMonitor` module emits the following events. All four are wired on macOS, Linux, and Windows. On Linux nothing is emitted unless `BUNMASKA_ENABLE_LINUX_POWER=1` is set and a system bus with logind is present.
 
 ### Event: 'suspend'
 

@@ -7,8 +7,10 @@
 import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 import { isSystemEngine, parseEngineId } from '../common/engine-id';
+import { type Arch, currentArch } from '../common/platform';
 import { BUNMASKA_VERSION } from '../common/version';
 import { bundlePreloadAssets, copyAppAssets } from './app-assets';
+import { runTool } from './run-tool';
 import { bundleIdSlug } from './build-macos';
 
 export type LinuxLayout = {
@@ -56,10 +58,14 @@ export const resolveBuildEngineId = (webkitPin: string | undefined): string => {
   }
 };
 
-export const tarballName = (name: string): string => `${name}-linux-x64.tar.gz`;
+/** Debian's label for the architecture: `amd64` for x64, `arm64` as is. */
+export const debArch = (arch: Arch): 'amd64' | 'arm64' => (arch === 'x64' ? 'amd64' : 'arm64');
 
-export const debFileName = (name: string, version: string): string =>
-  `${bundleIdSlug(name)}_${version}_amd64.deb`;
+export const tarballName = (name: string, arch: Arch = currentArch()): string =>
+  `${name}-linux-${arch}.tar.gz`;
+
+export const debFileName = (name: string, version: string, arch: Arch = currentArch()): string =>
+  `${bundleIdSlug(name)}_${version}_${debArch(arch)}.deb`;
 
 export type DesktopEntryOptions = {
   readonly name: string;
@@ -83,6 +89,8 @@ export const buildDesktopEntry = (opts: DesktopEntryOptions): string =>
 export type ControlFileOptions = {
   readonly slug: string;
   readonly version: string;
+  /** Debian architecture label; defaults to the host's. */
+  readonly arch?: 'amd64' | 'arm64';
   readonly maintainer: string;
   readonly description: string;
   /** Runtime package dependencies (`Depends:`). Omitted from the field when empty. */
@@ -101,7 +109,7 @@ export const buildControlFile = (opts: ControlFileOptions): string =>
   [
     `Package: ${opts.slug}`,
     `Version: ${opts.version}`,
-    'Architecture: amd64',
+    `Architecture: ${opts.arch ?? debArch(currentArch())}`,
     `Maintainer: ${opts.maintainer}`,
     ...(opts.depends !== undefined && opts.depends.length > 0
       ? [`Depends: ${opts.depends.join(', ')}`]
@@ -124,53 +132,27 @@ const arMember = (name: string, content: Uint8Array): Uint8Array => {
     arField(String(content.length), 10) + // size
     '`\n'; // two-byte member-header terminator
   const headerBytes = new TextEncoder().encode(header);
-  const needsPad = content.length % 2 === 1;
-  const out = new Uint8Array(headerBytes.length + content.length + (needsPad ? 1 : 0));
-  out.set(headerBytes, 0);
-  out.set(content, headerBytes.length);
-  if (needsPad) {
-    out[headerBytes.length + content.length] = 0x0a; // '\n'
-  }
-  return out;
+  // ar pads an odd-length member with one '\n' so the next header is even-aligned.
+  const pad = content.length % 2 === 1 ? [Buffer.from('\n')] : [];
+  return Buffer.concat([headerBytes, content, ...pad]);
 };
 
 export const buildArArchive = (
   members: readonly { name: string; content: Uint8Array }[],
 ): Uint8Array => {
-  const parts = [
+  return Buffer.concat([
     new TextEncoder().encode('!<arch>\n'),
     ...members.map((m) => arMember(m.name, m.content)),
-  ];
-  const total = parts.reduce((n, p) => n + p.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
+  ]);
 };
 
-const spawnOk = async (cmd: readonly string[], cwd?: string): Promise<void> => {
-  const proc = Bun.spawn(cmd as string[], {
-    ...(cwd !== undefined ? { cwd } : {}),
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`${cmd[0]} failed (exit ${exitCode}):\n${stderr}`);
-  }
-};
-
-const compileLinuxBinary = async (entry: string, outfile: string): Promise<void> => {
-  await spawnOk([
+const compileLinuxBinary = async (entry: string, outfile: string, arch: Arch): Promise<void> => {
+  await runTool('bun build --compile', [
     'bun',
     'build',
     entry,
     '--compile',
-    '--target=bun-linux-x64',
+    `--target=bun-linux-${arch}`,
     '--outfile',
     outfile,
   ]);
@@ -188,6 +170,10 @@ export type BuildLinuxAppOptions = {
   readonly engineId?: string;
   /** Engine shipped inside the bundle — drops the system WebKitGTK `Depends:`. */
   readonly embedEngine?: boolean;
+  /** The app's own version for the .deb; defaults to the framework version. */
+  readonly version?: string;
+  /** Target architecture; defaults to the host's. */
+  readonly arch?: Arch;
 };
 
 export type BuildLinuxAppResult = {
@@ -205,7 +191,8 @@ export const buildLinuxApp = async (opts: BuildLinuxAppOptions): Promise<BuildLi
   mkdirSync(dirname(layout.binPath), { recursive: true });
   mkdirSync(dirname(layout.desktopPath), { recursive: true });
 
-  await compileLinuxBinary(opts.entry, layout.binPath);
+  const arch = opts.arch ?? currentArch();
+  await compileLinuxBinary(opts.entry, layout.binPath, arch);
   chmodSync(layout.binPath, 0o755);
 
   // Bundle a module-using preload so it runs as a classic script in the packaged app.
@@ -233,15 +220,16 @@ export const buildLinuxApp = async (opts: BuildLinuxAppOptions): Promise<BuildLi
   writeFileSync(layout.engineIdPath, `${opts.engineId ?? 'system'}\n`);
 
   // -C keeps the archived paths relative to <out>.
-  const tarball = join(out, tarballName(opts.name));
-  await spawnOk(['tar', '-czf', tarball, '-C', out, opts.name]);
+  const tarball = join(out, tarballName(opts.name, arch));
+  await runTool('tar', ['tar', '-czf', tarball, '-C', out, opts.name]);
 
   // An embedded engine ships its own WebKitGTK, so it needs no system Depends.
   const depends = opts.embedEngine === true ? [] : DEFAULT_LINUX_DEPENDS;
   const deb = await packageDeb({
     layout,
     out,
-    version: BUNMASKA_VERSION,
+    version: opts.version ?? BUNMASKA_VERSION,
+    arch,
     name: opts.name,
     maintainer,
     description,
@@ -259,28 +247,36 @@ const packageDeb = async (args: {
   readonly layout: LinuxLayout;
   readonly out: string;
   readonly version: string;
+  readonly arch: Arch;
   readonly name: string;
   readonly maintainer: string;
   readonly description: string;
   readonly depends: readonly string[];
 }): Promise<string> => {
-  const { layout, out, version, name, maintainer, description, depends } = args;
+  const { layout, out, version, arch, name, maintainer, description, depends } = args;
   const staging = join(out, `.deb-${layout.slug}`);
   const controlDir = join(staging, 'control-root');
   mkdirSync(controlDir, { recursive: true });
 
   writeFileSync(
     join(controlDir, 'control'),
-    buildControlFile({ slug: layout.slug, version, maintainer, description, depends }),
+    buildControlFile({
+      slug: layout.slug,
+      version,
+      arch: debArch(arch),
+      maintainer,
+      description,
+      depends,
+    }),
   );
 
   const controlTar = join(staging, 'control.tar.gz');
-  await spawnOk(['tar', '-czf', controlTar, '-C', controlDir, 'control']);
+  await runTool('tar', ['tar', '-czf', controlTar, '-C', controlDir, 'control']);
 
   const dataTar = join(staging, 'data.tar.gz');
-  await spawnOk(['tar', '-czf', dataTar, '-C', layout.appDir, 'usr']);
+  await runTool('tar', ['tar', '-czf', dataTar, '-C', layout.appDir, 'usr']);
 
-  const debPath = join(out, debFileName(name, version));
+  const debPath = join(out, debFileName(name, version, arch));
   const archive = buildArArchive([
     { name: 'debian-binary', content: new TextEncoder().encode('2.0\n') },
     { name: 'control.tar.gz', content: new Uint8Array(await Bun.file(controlTar).arrayBuffer()) },

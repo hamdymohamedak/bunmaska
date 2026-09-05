@@ -596,7 +596,18 @@ class MacOSWindow implements NativeWindow {
   }
 
   /** @internal Surface a non-preventable lifecycle event. Called by the delegate. */
+  #zoomed = false;
+
   emitEvent(type: WindowEventType): void {
+    // AppKit posts no zoom notification, so maximize/unmaximize are derived by
+    // diffing isZoomed across resizes - the only hook that fires on both.
+    if (type === 'resize') {
+      const zoomed = this.isMaximized();
+      if (zoomed !== this.#zoomed) {
+        this.#zoomed = zoomed;
+        this.emitEvent(zoomed ? 'maximize' : 'unmaximize');
+      }
+    }
     // A user drag/resize is the one path that moves the frame without going
     // through our setters; the delegate fires AFTER the window server settles,
     // so this is the safe moment to trust its answer.

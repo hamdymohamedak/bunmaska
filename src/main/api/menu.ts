@@ -424,7 +424,7 @@ export class Menu {
     return getRealizer().realize(this.items.map(toSpec));
   }
 
-  /** `null` clears the stored menu but leaves the installed native menu bar in place. */
+  /** `null` removes the application menu everywhere, including bars already installed. */
   static setApplicationMenu(menu: Menu | null): void {
     applicationMenu = menu;
     // null must reach the native side too: it clears the menu bar (Electron

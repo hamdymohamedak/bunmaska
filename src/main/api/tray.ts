@@ -25,10 +25,13 @@ export type TrayImage = string | NativeImage;
  * click to present the menu. `right-click`/`double-click` are deferred.
  */
 
+/** Per-image options a backend may honour; the macOS template flag today. */
+export type TrayImageOptions = { readonly template?: boolean };
+
 export type TrayInstance = {
   setToolTip(toolTip: string): void;
   setTitle(title: string): void;
-  setImage(image: string): void;
+  setImage(image: string, options?: TrayImageOptions): void;
   /** `null` clears the installed menu. */
   setContextMenu(menu: Menu | null): void;
   onClick(callback: () => void): void;
@@ -39,7 +42,7 @@ export type TrayInstance = {
 
 export type TrayBackend = {
   /** `image` is a filesystem path, never a {@link NativeImage}. */
-  create(image: string): TrayInstance;
+  create(image: string, options?: TrayImageOptions): TrayInstance;
 };
 
 const macosBackend: TrayBackend = macosTrayBackend;
@@ -54,6 +57,10 @@ const { get: getBackend, setForTesting } = selectBackend<TrayBackend>('Tray', {
 /** @internal */
 export const setTrayBackendForTesting = setForTesting;
 
+/** A NativeImage's template flag travels with the path the backends load. */
+const imageOptions = (image: TrayImage): TrayImageOptions =>
+  typeof image === 'string' ? {} : { template: image.isTemplateImage() };
+
 export class Tray extends EventEmitter {
   #instance: TrayInstance;
   #destroyed = false;
@@ -62,7 +69,7 @@ export class Tray extends EventEmitter {
   /** A {@link NativeImage} is materialized to a temp PNG the backends load by path. */
   constructor(image: TrayImage) {
     super();
-    this.#instance = getBackend().create(this.#resolveImagePath(image));
+    this.#instance = getBackend().create(this.#resolveImagePath(image), imageOptions(image));
     this.#instance.onClick(() => {
       this.emit('click');
     });
@@ -99,7 +106,7 @@ export class Tray extends EventEmitter {
     if (this.#destroyed) {
       return;
     }
-    this.#instance.setImage(this.#resolveImagePath(image));
+    this.#instance.setImage(this.#resolveImagePath(image), imageOptions(image));
   }
 
   /** `null` clears it. Shown on click. No-op after destroy. */

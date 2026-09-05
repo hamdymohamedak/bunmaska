@@ -52,6 +52,11 @@ export const LIBNOTIFY_FFI_SYMBOLS = {
     args: [FFIType.pointer, FFIType.i32],
     returns: FFIType.void,
   },
+  // (NotifyNotification*, const char* key, GVariant* value) -> void; sinks the floating variant
+  notify_notification_set_hint: {
+    args: [FFIType.pointer, FFIType.cstring, FFIType.pointer],
+    returns: FFIType.void,
+  },
 } as const;
 
 const cache: { ffi: ReturnType<typeof dlopen<typeof LIBNOTIFY_FFI_SYMBOLS>> | undefined } = {

@@ -1,7 +1,7 @@
 import type { Menu } from '../../api/menu';
-import type { TrayBackend, TrayInstance } from '../../api/tray';
+import type { TrayBackend, TrayInstance, TrayImageOptions } from '../../api/tray';
 import { nsString } from './cocoa-foundation';
-import { msgSendF64, msgSendPtr } from './cocoa-msgsend-variants';
+import { msgSendF64, msgSendPtr, msgSendU8 } from './cocoa-msgsend-variants';
 import { cocoa } from './cocoa-runtime';
 import { defineObjcClass } from './cocoa-runtime-class';
 import type { Handle } from './objc';
@@ -69,7 +69,7 @@ const imageFromPath = (path: string): Handle => {
   );
 };
 
-const create = (image: string): TrayInstance => {
+const create = (image: string, options?: TrayImageOptions): TrayInstance => {
   const rt = cocoa();
   const statusBar = systemStatusBar();
   const rawItem = msgSendF64(
@@ -83,17 +83,19 @@ const create = (image: string): TrayInstance => {
   const button = (): Handle => rt.msgSend(item, rt.selectors.get('button'));
 
   // Guard a nil image (bad path) — set it only when it actually loaded.
-  const applyImage = (path: string): void => {
+  const applyImage = (path: string, template: boolean): void => {
     const btn = button();
     if (btn === 0n) {
       return;
     }
     const img = imageFromPath(path);
     if (img !== 0n) {
+      // A template image lets the menu bar recolor it for light/dark.
+      msgSendU8(img, rt.selectors.get('setTemplate:'), template ? 1 : 0);
       msgSendPtr(btn, rt.selectors.get('setImage:'), img);
     }
   };
-  applyImage(image);
+  applyImage(image, options?.template === true);
 
   let destroyed = false;
 
@@ -110,8 +112,8 @@ const create = (image: string): TrayInstance => {
         msgSendPtr(btn, rt.selectors.get('setTitle:'), nsString(title));
       }
     },
-    setImage: (path) => {
-      applyImage(path);
+    setImage: (path, options) => {
+      applyImage(path, options?.template === true);
     },
     setContextMenu: (menu: Menu | null) => {
       // Reuse the Menu realizer so tray-menu clicks route through the shared

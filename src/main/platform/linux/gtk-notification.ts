@@ -6,6 +6,7 @@ import type {
 } from '../../api/notification';
 import { cstr } from '../cstr';
 import { connectSignal } from './gtk-signals';
+import { loadGlibFFI } from './glib-ffi';
 import { loadLibnotifyFFI } from './libnotify-ffi';
 
 /**
@@ -58,6 +59,14 @@ const present = (spec: NotificationSpec): NotificationHandle => {
   );
   if (notification === null) {
     throw new Error('notify_notification_new() returned null');
+  }
+  if (spec.silent) {
+    // The freedesktop `suppress-sound` hint; set_hint sinks the floating GVariant.
+    notify.symbols.notify_notification_set_hint(
+      notification,
+      cstr('suppress-sound'),
+      loadGlibFFI().symbols.g_variant_new_boolean(1),
+    );
   }
 
   // No daemon (headless CI) makes show return FALSE — expected, not an error.

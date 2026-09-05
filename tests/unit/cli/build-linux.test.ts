@@ -41,11 +41,13 @@ describe('linuxLayout', () => {
 
 describe('tarballName / debFileName', () => {
   test('tarball is <Name>-linux-x64.tar.gz', () => {
-    expect(tarballName('My App')).toBe('My App-linux-x64.tar.gz');
+    expect(tarballName('My App', 'x64')).toBe('My App-linux-x64.tar.gz');
+    expect(tarballName('My App', 'arm64')).toBe('My App-linux-arm64.tar.gz');
   });
 
   test('deb is <slug>_<version>_amd64.deb', () => {
-    expect(debFileName('My App', '1.2.3')).toBe('my-app_1.2.3_amd64.deb');
+    expect(debFileName('My App', '1.2.3', 'x64')).toBe('my-app_1.2.3_amd64.deb');
+    expect(debFileName('My App', '1.2.3', 'arm64')).toBe('my-app_1.2.3_arm64.deb');
   });
 });
 
@@ -88,6 +90,7 @@ describe('buildDesktopEntry', () => {
 
 describe('buildControlFile', () => {
   const text = buildControlFile({
+    arch: 'amd64',
     slug: 'my-app',
     version: '1.0.0',
     maintainer: 'Bunmaska <noreply@bunmaska.dev>',

@@ -28,6 +28,7 @@ if (currentPlatform() === 'macos') {
       // Bun.write returns a promise; ensure it landed before compiling.
       await Bun.write(entry, "console.log('hi');\nprocess.exit(0);\n");
       result = await buildLinuxApp({
+        arch: 'x64',
         entry,
         name,
         id: 'com.example.testapp',

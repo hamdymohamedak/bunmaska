@@ -260,6 +260,10 @@ export const parseArgs = (argv: readonly string[]): Command => {
   if (head === '--version' || head === '-v') {
     return { kind: 'version' };
   }
+  // `bunmaska build --help` prints the usage instead of "unknown flag".
+  if (rest.includes('--help') || rest.includes('-h')) {
+    return { kind: 'help' };
+  }
   if (head === 'init') {
     return parseInit(rest);
   }

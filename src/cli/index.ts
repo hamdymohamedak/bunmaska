@@ -196,8 +196,9 @@ const runBuild = async (
   command: Extract<Command, { kind: 'build' }>,
   deps: DispatchDeps,
 ): Promise<number> => {
-  // The explicit argument wins, then the config's `entry` — mirroring `bunmaska dev`.
-  const entry = command.entry ?? (await loadConfig(process.cwd())).config.entry;
+  // The explicit argument wins, then the config - mirroring `bunmaska dev`.
+  const { config } = await loadConfig(process.cwd());
+  const entry = command.entry ?? config.entry;
   if (entry === undefined) {
     err(
       'bunmaska build: missing <entry.ts> — pass it explicitly or set `entry` in bunmaska.config.ts.',
@@ -230,7 +231,15 @@ const runBuild = async (
     return 1;
   }
 
-  const name = command.options.name ?? deriveName(entry);
+  if (command.options.embedEngine !== undefined && target !== 'windows') {
+    err('bunmaska build: --embed-engine is Windows-only.');
+    return 1;
+  }
+
+  // Flag > bunmaska.config.ts > derived from the entry file name.
+  const name = command.options.name ?? config.name ?? deriveName(entry);
+  const id = command.options.id ?? config.id;
+  const icon = command.options.icon ?? config.icon;
 
   // Fail fast on an unreadable signing key: discovering it after a full build
   // wastes the build and surfaced as a raw stack.
@@ -246,7 +255,7 @@ const runBuild = async (
   // A configured renderer builds first and ships as `renderer/` beside the
   // executable; nothing else in the build copies it (assets are entry siblings).
   let rendererDir: string | undefined;
-  const rendererConfig = (await loadConfig(process.cwd())).config.renderer;
+  const rendererConfig = config.renderer;
   if (rendererConfig !== undefined) {
     const rendererResult = await buildRenderer(process.cwd(), rendererConfig);
     rendererDir = rendererResult.outDir;
@@ -255,14 +264,20 @@ const runBuild = async (
 
   if (target === 'linux') {
     const { engineId, embed } = await resolveProjectEngine();
+    if (embed) {
+      // Dropping the .deb dependency without shipping an engine would crash on a
+      // clean box; refuse until Linux embedding exists.
+      err('bunmaska build: engine.embed is not supported on Linux yet; remove it or set it false.');
+      return 1;
+    }
     const result = await buildLinuxApp({
       entry,
       name,
       engineId,
-      ...(embed ? { embedEngine: true } : {}),
-      ...(command.options.id !== undefined ? { id: command.options.id } : {}),
+      version: readAppVersion(),
+      ...(id !== undefined ? { id } : {}),
       ...(command.options.out !== undefined ? { out: command.options.out } : {}),
-      ...(command.options.icon !== undefined ? { icon: command.options.icon } : {}),
+      ...(icon !== undefined ? { icon } : {}),
       ...(rendererDir !== undefined ? { rendererDir } : {}),
     });
     out(result.appDir);
@@ -279,7 +294,7 @@ const runBuild = async (
       name,
       engineId,
       ...(command.options.out !== undefined ? { out: command.options.out } : {}),
-      ...(command.options.icon !== undefined ? { icon: command.options.icon } : {}),
+      ...(icon !== undefined ? { icon } : {}),
       ...(command.options.embedEngine !== undefined
         ? { embedEngine: command.options.embedEngine }
         : {}),
@@ -296,9 +311,9 @@ const runBuild = async (
   const appPath = await buildMac({
     entry,
     name,
-    ...(command.options.id !== undefined ? { id: command.options.id } : {}),
+    ...(id !== undefined ? { id } : {}),
     ...(command.options.out !== undefined ? { out: command.options.out } : {}),
-    ...(command.options.icon !== undefined ? { icon: command.options.icon } : {}),
+    ...(icon !== undefined ? { icon } : {}),
     ...(command.options.sign !== undefined ? { sign: command.options.sign } : {}),
     ...(command.options.dmg === true ? { dmg: true } : {}),
     ...(deps.signApp !== undefined ? { signApp: deps.signApp } : {}),

@@ -108,3 +108,10 @@ describe('parseArgs', () => {
     }
   });
 });
+
+describe('parseArgs --help under a command', () => {
+  test('prints usage instead of rejecting the flag', () => {
+    expect(parseArgs(['build', '--help'])).toEqual({ kind: 'help' });
+    expect(parseArgs(['engine', 'install', '-h'])).toEqual({ kind: 'help' });
+  });
+});

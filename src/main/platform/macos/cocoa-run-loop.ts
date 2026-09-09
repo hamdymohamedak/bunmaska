@@ -1,4 +1,5 @@
-import { dlopen, FFIType } from 'bun:ffi';
+import { FFIType } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { cstr } from '../cstr';
 import { bigIntOut, LIBOBJC_PATH, macOSLibraryAccessor, ptrIn } from './objc';
 

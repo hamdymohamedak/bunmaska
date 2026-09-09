@@ -1,4 +1,5 @@
-import { dlopen, FFIType, type Pointer } from 'bun:ffi';
+import { FFIType, type Pointer } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { UnsupportedPlatformError } from '../../../common/errors';
 import { currentPlatform } from '../../../common/platform';
 import { cstr } from '../cstr';

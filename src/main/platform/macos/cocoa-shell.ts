@@ -1,4 +1,5 @@
-import { dlopen, FFIType } from 'bun:ffi';
+import { FFIType } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { nsString } from './cocoa-foundation';
 import { msgSendPtr, msgSendPtrReturnsU8 } from './cocoa-msgsend-variants';
 import { cocoa } from './cocoa-runtime';

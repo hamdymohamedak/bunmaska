@@ -1,4 +1,5 @@
-import { dlopen, FFIType } from 'bun:ffi';
+import { FFIType } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { winLibraryAccessor } from './win32';
 
 /**

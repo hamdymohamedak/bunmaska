@@ -1,0 +1,32 @@
+import { dlopen as bunDlopen, type FFIFunction, type Library, type Pointer } from 'bun:ffi';
+
+/**
+ * `dlopen` with pointer returns typed as `Pointer | null`. bun-types 1.4 widens a
+ * `FFIType.ptr` return to `Pointer | bigint | null`, but the runtime hands back a
+ * number (probed on Bun 1.4.2: `malloc` returns `typeof "number"`), and every
+ * backend already treats a pointer as one. Narrowing here keeps the `bigint`
+ * branch out of all the call sites. `u64` returns stay `bigint`.
+ */
+type NarrowReturn<R> = [R] extends [bigint]
+  ? R
+  : [Pointer] extends [Extract<R, Pointer>]
+    ? Exclude<R, bigint>
+    : R;
+
+type NarrowSymbols<S> = {
+  [K in keyof S]: S[K] extends (...args: infer A) => infer R
+    ? (...args: A) => NarrowReturn<R>
+    : S[K];
+};
+
+export type NarrowLibrary<Fns extends Record<string, FFIFunction>> = Omit<
+  Library<Fns>,
+  'symbols'
+> & {
+  readonly symbols: NarrowSymbols<Library<Fns>['symbols']>;
+};
+
+export const dlopen = <Fns extends Record<string, FFIFunction>>(
+  path: string,
+  fns: Fns,
+): NarrowLibrary<Fns> => bunDlopen(path, fns) as unknown as NarrowLibrary<Fns>;

@@ -1,4 +1,5 @@
-import { dlopen, FFIType, ptr } from 'bun:ffi';
+import { FFIType, ptr } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import type {
   NativeBlocker,
   PowerSaveBlockerBackend,

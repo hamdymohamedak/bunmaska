@@ -96,7 +96,7 @@ With that block in place:
 Two deliberate choices, both forced by how a desktop renderer actually loads. If you bring your own bundler instead, you will need the same two settings:
 
 - **A classic IIFE bundle, not ES modules.** `loadFile` serves your page over `file://`, and browsers treat `file://` as a null origin - a `<script type="module">` fails the CORS check and silently loads nothing. A classic script has no such rule, so the bundle is one IIFE your `index.html` includes with a plain `<script src>`.
-- **`NODE_ENV=development` baked into the bundle.** Bun's bundler transpiles JSX to `jsxDEV` calls regardless of your tsconfig, and React's *production* runtime stubs `jsxDEV` out - the combination renders a blank page with no error. Defining `process.env.NODE_ENV` as `development` selects the React runtime that actually implements what Bun emits.
+- **`NODE_ENV` follows the command.** `bunmaska dev` defines `process.env.NODE_ENV` as `development` (the React development runtime, warnings and `jsxDEV`); `bunmaska build` defines `production`. Bun picks the matching JSX runtime from that define, so a `react-jsx` tsconfig needs nothing else.
 
 The `renderer` block is optional: apps with their own bundler setup (Vite, etc.) just keep running it themselves and let `bunmaska dev` live-reload on the output writes - `dist/` is watched.
 

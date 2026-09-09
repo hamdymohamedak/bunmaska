@@ -6,7 +6,8 @@
  * exactly Electron's `getBounds` contract, so no coordinate flip on reads.
  */
 
-import { dlopen, FFIType, ptr } from 'bun:ffi';
+import { FFIType, ptr } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import type { Rect } from '../native';
 import { nsString } from './cocoa-foundation';
 import { msgSendI64, msgSendPtr, msgSendReturnsI64 } from './cocoa-msgsend-variants';

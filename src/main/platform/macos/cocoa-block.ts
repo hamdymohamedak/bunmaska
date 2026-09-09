@@ -1,4 +1,5 @@
-import { dlopen, FFIType, JSCallback, type Pointer, ptr } from 'bun:ffi';
+import { FFIType, JSCallback, type Pointer, ptr } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { cstr } from '../cstr';
 import type { Handle } from './objc';
 

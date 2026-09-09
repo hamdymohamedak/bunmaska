@@ -1,5 +1,6 @@
 import { BunmaskaError } from '../../../common/errors';
-import { dlopen, FFIType, JSCallback } from 'bun:ffi';
+import { FFIType, JSCallback } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { cstr } from '../cstr';
 import { cocoa } from './cocoa-runtime';
 import { type Handle, LIBOBJC_PATH, macOSLibraryAccessor } from './objc';

@@ -1,4 +1,5 @@
-import { dlopen, FFIType, read } from 'bun:ffi';
+import { FFIType, read } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { cstr } from '../cstr';
 import { macOSLibraryAccessor } from './objc';
 

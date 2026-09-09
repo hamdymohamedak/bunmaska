@@ -1,4 +1,5 @@
-import { CString, dlopen, FFIType, type Pointer } from 'bun:ffi';
+import { CString, FFIType, type Pointer } from 'bun:ffi';
+import { dlopen } from '../dlopen';
 import { UnsupportedPlatformError } from '../../../common/errors';
 import { currentPlatform } from '../../../common/platform';
 import { engineLibPath, prepareEngineForLoad, resolveEngine } from '../../engine/resolve';

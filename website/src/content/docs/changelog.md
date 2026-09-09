@@ -26,6 +26,9 @@ A documentation-versus-reality pass: every claim in the docs was checked against
 - A `NativeImage` marked as a template renders as a template in the macOS menu bar `Tray`.
 - `MenuPopupOptions`, `WebPreferences`, `LoadFileOptions`, `MouseInputEvent`, `KeyboardInputEvent`, `NativeInputEvent` and `DEFAULT_MIME_TYPE` are exported from `bunmaska` as the docs claimed.
 
+- The renderer build defines `NODE_ENV` per command: `dev` builds the React development runtime, `build` the production one. Bun 1.4 picks the JSX runtime from that define, so packaged apps stop shipping development React.
+- Bunmaska is developed and tested on Bun 1.4.2 (CI on all three platforms); Bun 1.3 still works.
+
 **Docs**
 
 - The API reference, CLI, building, shipping, engine and parity pages now match the code, per platform; a new [errors](/docs/api/errors) page documents the `BunmaskaError` family.

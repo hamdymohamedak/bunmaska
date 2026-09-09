@@ -1,9 +1,9 @@
 /**
  * The renderer build Bunmaska owns (`config.renderer`). One recipe, deliberately:
  * a classic IIFE bundle, because `loadFile` serves `file://` where an ES module
- * fails the CORS null-origin check, built with `NODE_ENV=development` because
- * Bun's bundler emits `jsxDEV` regardless of tsconfig and the production React
- * runtime stubs it out. See .admin/RENDERER-BUILD.md for the derivation.
+ * fails the CORS null-origin check. `NODE_ENV` is defined per mode: `bunmaska dev`
+ * builds the development React runtime (warnings, jsxDEV), `bunmaska build` the
+ * production one. See .admin/RENDERER-BUILD.md for the derivation.
  */
 
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
@@ -20,17 +20,23 @@ export type RendererBuildResult = {
   readonly written: readonly string[];
 };
 
-/** The bundler seam: builds `entry` into `outDir`, returns written file names. */
-export type RendererBundler = (entry: string, outDir: string) => Promise<readonly string[]>;
+export type RendererMode = 'development' | 'production';
 
-const defaultBundler: RendererBundler = async (entry, outDir) => {
+/** The bundler seam: builds `entry` into `outDir`, returns written file names. */
+export type RendererBundler = (
+  entry: string,
+  outDir: string,
+  mode: RendererMode,
+) => Promise<readonly string[]>;
+
+const defaultBundler: RendererBundler = async (entry, outDir, mode) => {
   const result = await Bun.build({
     entrypoints: [entry],
     outdir: outDir,
     target: 'browser',
     format: 'iife',
-    // Dev React: Bun transpiles JSX to jsxDEV; the prod runtime stubs it out.
-    define: { 'process.env.NODE_ENV': JSON.stringify('development') },
+    // The define picks the JSX runtime too: development emits jsxDEV, production jsx.
+    define: { 'process.env.NODE_ENV': JSON.stringify(mode) },
     naming: '[dir]/[name].[ext]',
   });
   if (!result.success) {
@@ -48,6 +54,7 @@ const defaultBundler: RendererBundler = async (entry, outDir) => {
 export const buildRenderer = async (
   projectDir: string,
   renderer: BunmaskaRendererConfig,
+  mode: RendererMode = 'production',
   bundler: RendererBundler = defaultBundler,
 ): Promise<RendererBuildResult> => {
   const entry = resolve(projectDir, renderer.entry);
@@ -56,7 +63,7 @@ export const buildRenderer = async (
   }
   const outDir = resolve(projectDir, rendererOutDir(renderer));
   mkdirSync(outDir, { recursive: true });
-  const written = [...(await bundler(entry, outDir))];
+  const written = [...(await bundler(entry, outDir, mode))];
   for (const relPath of renderer.copy ?? []) {
     const from = resolve(projectDir, relPath);
     if (!existsSync(from)) {

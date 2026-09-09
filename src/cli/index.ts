@@ -257,7 +257,7 @@ const runBuild = async (
   let rendererDir: string | undefined;
   const rendererConfig = config.renderer;
   if (rendererConfig !== undefined) {
-    const rendererResult = await buildRenderer(process.cwd(), rendererConfig);
+    const rendererResult = await buildRenderer(process.cwd(), rendererConfig, 'production');
     rendererDir = rendererResult.outDir;
     out(`renderer built (${rendererResult.written.join(', ')})`);
   }
@@ -432,7 +432,7 @@ const runDevCommand = async (command: Extract<Command, { kind: 'dev' }>): Promis
     const rebuild = async (): Promise<void> => {
       // A broken renderer edit must never take the dev loop down with it.
       try {
-        const result = await buildRenderer(dir, rendererConfig);
+        const result = await buildRenderer(dir, rendererConfig, 'development');
         log(`renderer rebuilt (${result.written.join(', ')})`);
       } catch (error) {
         err(error instanceof Error ? error.message : String(error));

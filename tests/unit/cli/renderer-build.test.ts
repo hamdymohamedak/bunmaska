@@ -21,7 +21,7 @@ describe('rendererOutDir', () => {
 });
 
 describe('buildRenderer', () => {
-  test('bundles the entry as a classic IIFE with dev NODE_ENV', async () => {
+  test('bundles the entry as a classic IIFE', async () => {
     const dir = makeProject();
     const result = await buildRenderer(dir, { entry: 'src/renderer/main.ts' });
     expect(result.written).toContain('main.js');
@@ -29,6 +29,15 @@ describe('buildRenderer', () => {
     // A module bundle would carry import/export; file:// cannot load those.
     expect(bundle).not.toContain('export ');
     expect(bundle).not.toMatch(/^import /m);
+  });
+
+  test('defines NODE_ENV from the mode: production by default, development for dev', async () => {
+    const dir = makeProject();
+    writeFileSync(join(dir, 'src', 'renderer', 'main.ts'), 'console.log(process.env.NODE_ENV);\n');
+    const prod = await buildRenderer(dir, { entry: 'src/renderer/main.ts' });
+    expect(readFileSync(join(prod.outDir, 'main.js'), 'utf8')).toContain('"production"');
+    const dev = await buildRenderer(dir, { entry: 'src/renderer/main.ts' }, 'development');
+    expect(readFileSync(join(dev.outDir, 'main.js'), 'utf8')).toContain('"development"');
   });
 
   test('copies the configured static files into the output', async () => {

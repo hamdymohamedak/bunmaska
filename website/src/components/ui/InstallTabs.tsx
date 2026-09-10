@@ -51,7 +51,7 @@ export default function InstallTabs() {
           type="button"
           onClick={copy}
           aria-label="Copy install command"
-          className={'copy-btn copy-btn--light' + (copied ? ' copied' : '')}
+          className={`copy-btn copy-btn--light${copied ? ' copied' : ''}`}
         />
       </div>
 

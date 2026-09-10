@@ -47,11 +47,12 @@
         "noNonNullAssertion": "error",
         "useImportType": "error",
         "useExportType": "error",
-        "noDefaultExport": "warn",
+        "noDefaultExport": "off",
         "useNamingConvention": "off"
       },
       "complexity": {
-        "noForEach": "off"
+        "noForEach": "off",
+        "useLiteralKeys": "off"
       },
       "correctness": {
         "noUnusedVariables": "error",

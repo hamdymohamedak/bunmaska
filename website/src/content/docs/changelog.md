@@ -4,11 +4,11 @@ description: Every published release gets an entry here - what shipped, what bro
 order: 2
 ---
 
-The current version is **`0.1.0-alpha.7`** (`npm i bunmaska` installs the latest published alpha). Newest first; still a curated snapshot rather than a per-commit log.
+The current version is **`0.1.0-alpha.8`** (`npm i bunmaska` installs the latest published alpha). Newest first; still a curated snapshot rather than a per-commit log.
 
-## Unreleased
+## `0.1.0-alpha.8`
 
-A documentation-versus-reality pass: every claim in the docs was checked against the code, and where they disagreed, one of them was fixed.
+A documentation-versus-reality pass, three real bugs it flushed out, and Bun 1.4. Every claim in the docs was checked against the code; where they disagreed, one of them was fixed. The React starter and the engine catalogue move to alpha.9.
 
 **Fixes**
 
